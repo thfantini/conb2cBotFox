@@ -1,0 +1,35 @@
+{
+	"table": "v_boleto_mes",
+	"rows":
+	[
+		{
+			"cliente": 21,
+			"cnpj": "02.968.465/0001-66",
+			"nome": "LABORATORIO DE ANALISES CLINICAS DR. MIGUEL LTDA.",
+			"celular": "5537991458954",
+			"nfse": 190037,
+			"conta": 210443,
+			"empNome": "AMBIENTEC SOLUCOES EM RESIDUOS LTDA",
+			"empCNPJ": "11.399.773/0001-09",
+			"dataDoc": "2025-09-02 07:50:45.377",
+			"dataVencimento": "2025-09-28 00:00:00.000",
+			"numero": "210443-1",
+			"valor": 157.79,
+			"codBarras": "75692121800000157791314001099317418746595001",
+			"linhaDigitavel": "75691.31407 01099.317412 87465.950019 2 12180000015779"
+		}
+	]
+}
+
+DIRETRIZES
+1 - não desenvolva nenhum código sem que antes eu autorize a criação;
+2 - não altere nenhuma funcionalidade existente sem autorização;
+3 - não crie novas funcionalidades sem autorização;
+4 - não crie um front-end;
+5 - crie um arquivo por vez, aguarde autorização para criar o proximo;
+6 - todos os componentes devem ser dinâmicos e receber as informações atraves das props;
+7 - nenhuma informação deve ser mocada, todas serao disponibilizadas atraves do banco de dados;
+8 - siga sempre o mesmo padrao de codigo sujerido no repositorio referencia.
+
+
+
