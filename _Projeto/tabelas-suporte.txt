@@ -1,0 +1,96 @@
+Leia as diretrizes do projeto; 
+
+Leia o repositório do projeto; 
+
+Crie uma variação de webhook e webhookController.js ( webhookGroupController.js ) que deverá possuir uma rota especifica com funcionalidades especificas que ira trabalhar como um micro-serviço dentro da aplicação.
+
+Essa rota deve ser exclusiva para receber mensagens enviadas em determinados grupos do WhatsApp.
+
+A mesma irá processar somente com as seguintes regras abaixo:
+
+1 - REGRA GERAL:
+
+Somente mensagens originadas em um determinado grupo onde o campo: chat_id: 
+
+exista na view: vw_sup_grupos. Se o grupo não existir, a mensagem deve ser ignorada.
+
+2 - REGRA VALIDACAO:
+
+chat_id: existe na view: vw_sup_grupos
+
+sql: select codigo,cliente,tipo from vw_sup_grupos where codigo = {chat_id} and status=1
+
+view: vw_sup_grupos
+
+campos: id, codigo, cliente, nome, tipo, status
+
+3 - REGRA TABELA DE DESTINO DA MENSAGEM:
+
+sql: select tabela from whapi_tabelas where tipo = {vw_sup_grupos.tipo}
+
+Tabelas registradas:
+
+tipo: 0 = whapi_mensagem
+
+tipo: 1 = whapi_documentacao
+
+tipo: 2 = whapi_kanban
+
+tipo: 3 = whapi_registro
+
+tipo: 4 = whapi_homologacao
+
+Ao identificar a tabela de destino, 
+
+os seguintes registros devem ser gravados nos campos relacionados:
+
+tipo: {vw_sup_grupos.tipo}
+
+cliente: {vw_sup_grupos.cliente}
+
+chatId: messages > id
+
+userNumber: messages > from
+
+userName: messages > from_name
+
+titulo: 
+
+REGRA 01: origem do titulo conforme tipo de mensagem
+
+messages > type:text = campo: text > body
+
+messages > type:image = campo: image > caption
+
+messages > type:document = campo: document > caption
+
+REGRA 02: 
+
+O titulo será composto sempre pela primeira linha da mensagem, marcada em negrito.
+
+exemplo: TITULO TESTE\nOlá, essa é uma mensagem de testes ... 
+
+titulo: TITULO TESTE
+
+REGRA 03: 
+
+A mensagem será todo conteudo existente abaixo de titulo ( REGRA 02 )
+
+exemplo: TITULO TESTE\nOlá, essa é uma mensagem de testes ... 
+
+mensagem: Olá, essa é uma mensagem de testes ... 
+
+imagem: conteúdo data do campo image > preview: data:image/jpeg;base64 .. 
+
+arquivo: salvar arquivo em formato data base64 .. 
+
+dataCad: Y-m-d H:i:s
+
+DIRETRIZ:
+
+Essa funcionalidade deve ser independente e não pode influenciar na aplicação principal
+
+Deve possuir arquivos específicos, de preferencia em uma pasta especifica, tal como um modulo
+
+adicional com os seus próprios arquivos, mas que utiliza a estrutura principal e suas funcionalidades.
+

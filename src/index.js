@@ -8,6 +8,9 @@ const logger = require('./utils/logger');
 const database = require('./config/database');
 const evolutionAPI = require('./config/evolution');
 const webhookRoutes = require('./routes/webhook');
+const webhookGroupRoutes = require('./routes/webhookGroup');
+const webhookMessageRoutes = require('./routes/webhookMessage');
+const qrcodeRoutes = require('./routes/qrcode');
 const { 
     errorHandler, 
     notFoundHandler, 
@@ -138,12 +141,27 @@ class WhatsAppBot {
                 message: 'WhatsApp Bot API',
                 version: require('../package.json').version,
                 timestamp: new Date().toISOString(),
-                environment: process.env.NODE_ENV || 'development'
+                environment: process.env.NODE_ENV || 'development',
+                endpoints: {
+                    webhook: '/webhook',
+                    qrcode: '/qrcode',
+                    health: '/health',
+                    info: '/info'
+                }
             });
         });
 
         // Rotas de webhook
         this.app.use('/webhook', webhookRoutes);
+
+        // Rotas de webhook para grupos
+        this.app.use('/webhook-group', webhookGroupRoutes);
+
+        // Rotas de webhook-message (micro-serviço)
+        this.app.use('/webhook-message', webhookMessageRoutes);
+
+        // Rotas de QR Code
+        this.app.use('/qrcode', qrcodeRoutes);
 
         // Rota de health check
         this.app.get('/health', async (req, res) => {
@@ -382,6 +400,22 @@ class WhatsAppBot {
             checks.evolution = await evolutionAPI.testConnection();
         } catch (error) {
             logger.debug('Health check evolution falhou', { error: error.message });
+        }
+
+        // Check WhatsApp Message Service
+        try {
+            const WhatsAppMessageService = require('./services/whatsappMessageService');
+            checks.whatsapp_service = await WhatsAppMessageService.verificarDisponibilidade();
+        } catch (error) {
+            logger.debug('Health check whatsapp service falhou', { error: error.message });
+        }
+
+        // Check Email Message Service  
+        try {
+            const EmailMessageService = require('./services/emailMessageService');
+            checks.email_service = await EmailMessageService.verificarDisponibilidade();
+        } catch (error) {
+            logger.debug('Health check email service falhou', { error: error.message });
         }
 
         const allHealthy = Object.values(checks).every(status => status);

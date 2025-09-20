@@ -1,0 +1,35 @@
+Leia as diretrizes do projeto; 
+Leia o repositório do projeto; 
+
+Crie uma variação de webhook e webhookController.js ( webhookMessagesController.js ) que deverá possuir uma rota especifica com funcionalidades especificas que ira trabalhar como um micro-serviço dentro da aplicação, tal como: /webhook-group
+
+Essa rota deve ser exclusiva para enviar mensagens para clientes autorizados a receber.
+A mesma deve receber os campos: cnpj e mensagem no body {texto, imagem}
+
+1 - REGRA GERAL:
+
+Somente CNPJ registrados serão autorizados a receber as mensagens.
+
+2 - REGRA VALIDACAO:
+
+cnpj: existe na view: whapi_clientes
+
+sql: select email,celular from whapi_clientes where cnpj = {cnpj} and status=1
+
+3 - REGRA DE ENVIO:
+Ao identitificar o cliente a mensagem deve ser enviada para o numero {celular} recuperado na view: whapi_clientes
+
+4 - FORMATO
+A mensagem poderá ser dos tipos: text e image apenas.
+REGRA: crie um arquivo especifico para o envio de mensagens de whatsapp
+
+5 - EMAIL
+Deve ser enviada uma copia da mensagem também atraves do {e-mail} recuperado na view: whapi_clientes
+REGRA: crie um arquivo especifico para o envio de mensagens de e-mail
+
+DIRETRIZ:
+
+Essa funcionalidade deve ser independente e não pode influenciar na aplicação principal
+Deve possuir arquivos específicos, de preferencia em uma pasta especifica, tal como um modulo
+adicional com os seus próprios arquivos, mas que utiliza a estrutura principal e suas funcionalidades.
+
