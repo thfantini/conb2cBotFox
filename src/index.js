@@ -14,7 +14,6 @@ const qrcodeRoutes = require('./routes/qrcode');
 
 // Cron:
 const scheduledRoutes = require('./modules/scheduled-messages/routes/scheduled');
-const scheduledRoutes = require('./modules/scheduled-messages/routes/scheduled');
 
 const { 
     errorHandler, 

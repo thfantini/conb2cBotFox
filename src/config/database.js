@@ -1,5 +1,6 @@
-const mysql = require('mysql2/promise');
 require('dotenv').config();
+const mysql = require('mysql2/promise');
+const logger = require('../utils/logger');
 
 /**
  * Configuração do pool de conexões MySQL
@@ -39,7 +40,8 @@ async function executeQuery(query, params = []) {
             error: null
         };
     } catch (error) {
-        console.error('Erro na execução da query:', error);
+        //console.error('Erro na execução da query:', error);
+        logger.error('❌ Erro ao conectar MySQL:', error.message);
         return {
             success: false,
             data: null,
@@ -148,10 +150,14 @@ async function testConnection() {
         const connection = await pool.getConnection();
         await connection.ping();
         connection.release();
-        console.log('✅ Conexão com banco de dados estabelecida com sucesso');
+        //console.log('✅ Conexão com banco de dados estabelecida com sucesso');
+        logger.success('✅ MySQL conectado com sucesso!');
+        logger.info(`📊 Database: ${dbConfig.database}`);
+        logger.info(`🖥️  Host: ${dbConfig.host}:${dbConfig.port}`);
         return true;
     } catch (error) {
-        console.error('❌ Erro na conexão com banco de dados:', error.message);
+        //console.error('❌ Erro na conexão com banco de dados:', error.message);
+        logger.error('❌ Erro na conexão com banco de dados:', error.message);
         return false;
     }
 }
