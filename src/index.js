@@ -11,6 +11,11 @@ const webhookRoutes = require('./routes/webhook');
 const webhookGroupRoutes = require('./routes/webhookGroup');
 const webhookMessageRoutes = require('./routes/webhookMessage');
 const qrcodeRoutes = require('./routes/qrcode');
+
+// Cron:
+const scheduledRoutes = require('./modules/scheduled-messages/routes/scheduled');
+const scheduledRoutes = require('./modules/scheduled-messages/routes/scheduled');
+
 const { 
     errorHandler, 
     notFoundHandler, 
@@ -57,6 +62,9 @@ class WhatsAppBot {
 
             // Configura webhook da Evolution
             await this.setupEvolutionWebhook();
+
+            // Inicializar automação de mensagens programadas
+            await this.initializeScheduledMessages();
 
             // Inicia servidor
             await this.startServer();
@@ -163,6 +171,9 @@ class WhatsAppBot {
         // Rotas de QR Code
         this.app.use('/qrcode', qrcodeRoutes);
 
+        // Rotas CRON
+        this.app.use('/scheduled', scheduledRoutes);
+
         // Rota de health check
         this.app.get('/health', async (req, res) => {
             try {
@@ -195,6 +206,49 @@ class WhatsAppBot {
             });
         });
     }
+
+    /**
+     * Inicializa o sistema de mensagens programadas
+     */
+    async initializeScheduledMessages() {
+        try {
+            logger.info('🤖 Inicializando sistema de mensagens programadas...', { 
+                context: 'scheduled-messages' 
+            });
+
+            // Importar aqui para evitar carregamento desnecessário se desabilitado
+            const scheduledCron = require('./modules/scheduled-messages/cron/scheduledCron');
+            
+            // A automação já se auto-inicializa, mas podemos fazer verificações
+            const cronStatus = scheduledCron.getStatus();
+            
+            if (cronStatus.isRunning) {
+                logger.info('✅ Automação de mensagens programadas ativa', {
+                    context: 'scheduled-messages',
+                    interval: cronStatus.interval,
+                    nextExecution: cronStatus.statistics.nextAutoExecution
+                });
+            } else {
+                logger.info('⏸️ Automação de mensagens programadas disponível mas pausada', {
+                    context: 'scheduled-messages',
+                    enabled: cronStatus.isEnabled
+                });
+            }
+
+        } catch (error) {
+            logger.error('❌ Erro ao inicializar mensagens programadas', {
+                context: 'scheduled-messages',
+                error: error.message
+            });
+            
+            // Não falhar a aplicação se o módulo de mensagens programadas tiver problema
+            logger.warn('⚠️ Aplicação continuará sem mensagens programadas', {
+                context: 'scheduled-messages'
+            });
+        }
+    }
+
+
 
     /**
      * Configura tratamento de erros
@@ -348,6 +402,16 @@ class WhatsAppBot {
         logger.info('🛑 Iniciando shutdown graceful...', { context: 'shutdown' });
 
         try {
+            
+            // Parar automação de mensagens programadas
+            try {
+                const scheduledCron = require('./modules/scheduled-messages/cron/scheduledCron');
+                scheduledCron.stop();
+                logger.info('✅ Automação de mensagens programadas parada', { context: 'shutdown' });
+                } catch (error) {
+                logger.warn('⚠️ Erro ao parar automação:', error.message);
+            }
+            
             // Para de aceitar novas conexões
             if (this.server) {
                 await new Promise((resolve) => {

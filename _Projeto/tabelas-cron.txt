@@ -1,0 +1,49 @@
+Leia as diretrizes do projeto; 
+Leia o repositório do projeto; 
+
+Crie uma nova rota de envio de mensagens nos mesmos padrões da rota: /webhook-message/enviar
+porém, essa nova rota será utilizada para realizar envios programados de mensagens.
+Essa rota deve ser exclusiva para enviar mensagens programadas.
+
+1 - REGRA GERAL:
+
+Devemos criar uma rotina de cron que deve verificar a tabela: aux_cron
+sql: select cliente,hora_inicio,hora_fim from aux_cron where data_inicio >= {dateNow} and data_fim <= {dateNow} and status=1
+
+REGRA: 
+A Regra 2 somente deve ser executada se hora_inicio e hora_fim corresponderem ao periodo de hora atual.
+
+2 - REGRA VALIDACAO:
+
+Apos recuperar: cliente da tabela: aux_cron
+devemos verificar se existem registros para envio na view: vw_boletos
+
+sql: select * from vw_boletos where cliente = {cliente} and status=0
+
+3 - REGRA DE ENVIO:
+Ao identitificar as mensagens, essas devem ser enviadas utilizando os mesmos criterios de envio da funcao:
+whatsappService.js > function processarBoletos
+
+REGRA: 
+crie um arquivo especifico para o envio de mensagens baseando-se em: whatsappService.js
+
+4 - FORMATO
+Incluir uma mensagem amigavel antes dos dados do boleto para pagamento.
+
+5 - EMAIL
+Deve ser enviada uma copia da mensagem também atraves do {e-mail} recuperado na view: vw_boletos
+
+REGRA: 
+crie um arquivo especifico para o envio de mensagens de e-mail
+
+6 - Ao enviar a mensagem deve-se regsitrar o envio na tabela: boletos
+sql: update boletos set status=1,status_data={DATETIME} where idConta = {idConta}
+idConta: campo recuperado na view: vw_boletos na Regra 2
+
+DIRETRIZ:
+
+Essa funcionalidade deve ser independente e não pode influenciar na aplicação principal
+Deve possuir arquivos específicos, de preferencia em uma pasta especifica, tal como um modulo
+adicional com os seus próprios arquivos, mas que utiliza a estrutura principal e suas funcionalidades.
+
+                                                                                                                        
