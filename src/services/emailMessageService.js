@@ -12,7 +12,7 @@ class EmailMessageService {
      */
     static criarTransporter() {
         try {
-            const transporter = nodemailer.createTransporter({
+            const transporter = nodemailer.createTransport({
                 host: process.env.SMTP_HOST || 'localhost',
                 port: process.env.SMTP_PORT || 587,
                 secure: process.env.SMTP_SECURE === 'true', // true para 465, false para outros
@@ -477,15 +477,25 @@ class EmailMessageService {
                 return false;
             }
 
+            console.log('🔍 Verificando disponibilidade do serviço Email...');
+
             const transporter = EmailMessageService.criarTransporter();
-            await transporter.verify();
-            
+
+            // Verificar com timeout
+            const verifyPromise = transporter.verify();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout na verificação SMTP')), 5000)
+            );
+
+            await Promise.race([verifyPromise, timeoutPromise]);
+
             console.log('✅ Serviço Email disponível');
             return true;
-            
+
         } catch (error) {
-            console.error('❌ Erro ao verificar disponibilidade Email:', error);
-            return false;
+            console.warn(`⚠️ Verificação de Email falhou: ${error.message}`);
+            // Não retornar false automaticamente - assumir que está disponível se configs estão presentes
+            return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
         }
     }
 

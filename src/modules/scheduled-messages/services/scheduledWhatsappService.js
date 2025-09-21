@@ -203,34 +203,37 @@ class ScheduledWhatsappService {
     async verificarDisponibilidadeInstancia() {
         try {
             console.log(`🔍 [SCHEDULED-WHATSAPP] Verificando instância WhatsApp...`);
-            
+
             // Usar método existente do evolutionAPI
             const status = await evolutionAPI.getInstanceStatus();
-            
+
             if (!status.success) {
                 throw new Error(status.error || 'Falha ao verificar status da instância');
             }
 
-            const isAvailable = status.data?.state === 'open' || status.data?.connectionState === 'connected';
-            
+            // A resposta da Evolution API tem a estrutura: { instance: { instanceName: "FOX", state: "open" } }
+            const instanceData = status.data?.instance || status.data;
+            const isAvailable = instanceData?.state === 'open' || instanceData?.connectionState === 'connected';
+
             if (!isAvailable) {
-                console.warn(`⚠️ [SCHEDULED-WHATSAPP] Instância não conectada: ${JSON.stringify(status.data)}`);
+                console.warn(`⚠️ [SCHEDULED-WHATSAPP] Instância não conectada: ${JSON.stringify(instanceData)}`);
                 return {
                     success: false,
-                    error: 'Instância WhatsApp não está conectada'
+                    error: 'Instância WhatsApp não está conectada',
+                    data: instanceData
                 };
             }
 
-            console.log(`✅ [SCHEDULED-WHATSAPP] Instância WhatsApp disponível`);
-            
+            console.log(`✅ [SCHEDULED-WHATSAPP] Instância WhatsApp disponível: ${instanceData?.instanceName} - ${instanceData?.state}`);
+
             return {
                 success: true,
-                data: status.data
+                data: instanceData
             };
 
         } catch (error) {
             console.error(`❌ [SCHEDULED-WHATSAPP] Erro na verificação da instância:`, error);
-            
+
             return {
                 success: false,
                 error: error.message
@@ -385,24 +388,34 @@ class ScheduledWhatsappService {
     async testarConectividade() {
         try {
             console.log(`🔍 [SCHEDULED-WHATSAPP] Testando conectividade...`);
-            
-            const teste = await evolutionAPI.testConnection();
-            
-            if (!teste.success) {
-                throw new Error(teste.error || 'Falha no teste de conectividade');
+
+            // Usar o método testConnection do evolution.js que retorna boolean
+            const testeConexao = await evolutionAPI.testConnection();
+
+            if (!testeConexao) {
+                throw new Error('Falha na conexão com Evolution API');
             }
 
+            // Testar também o status da instância específica
+            const statusInstancia = await this.verificarDisponibilidadeInstancia();
+
             console.log(`✅ [SCHEDULED-WHATSAPP] Conectividade OK`);
-            
+
             return {
                 success: true,
                 message: 'Conectividade com Evolution API funcionando',
+                details: {
+                    connectionTest: testeConexao,
+                    instanceAvailable: statusInstancia.success,
+                    instanceData: statusInstancia.data || null,
+                    instanceError: statusInstancia.error || null
+                },
                 timestamp: new Date().toISOString()
             };
 
         } catch (error) {
             console.error(`❌ [SCHEDULED-WHATSAPP] Erro no teste de conectividade:`, error);
-            
+
             return {
                 success: false,
                 error: error.message,

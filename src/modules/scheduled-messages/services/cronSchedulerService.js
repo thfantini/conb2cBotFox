@@ -1,5 +1,7 @@
 const moment = require('moment');
 const database = require('../../../config/database');
+const scheduledWhatsappService = require('./scheduledWhatsappService');
+const scheduledEmailService = require('./scheduledEmailService');
 
 /**
  * Serviço principal para agendamento e execução de envios programados
@@ -223,7 +225,7 @@ class CronSchedulerService {
                 cliente: clienteCron.cliente,
                 mensagensEnviadas: resultadoEnvio.mensagensEnviadas,
                 boletos: boletosResult.data.map(b => ({
-                    conta: b.conta,
+                    conta: b.idConta || b.conta,
                     numero: b.numero,
                     valor: b.valor,
                     vencimento: b.dataVencimento
@@ -251,9 +253,9 @@ class CronSchedulerService {
         try {
             const query = `
                 SELECT cliente, cnpj, nome, celular, idNfse, idConta,
-                       dataDoc, dataVencimento, numero, valor, codBarras, linhaDigitavel, email
-                FROM vw_boletos 
-                WHERE cliente = ? 
+                       dataDoc, dataVencimento, numero, valor, codBarras, linhaDigitavel, email, url
+                FROM vw_boletos
+                WHERE cliente = ?
                 AND status = 0
                 ORDER BY dataVencimento ASC
             `;
@@ -289,7 +291,6 @@ class CronSchedulerService {
         try {
             console.log(`📤 [CRON] Iniciando envios para: ${clienteData.nome}`);
 
-            // TODO: Integrar com scheduledWhatsappService e scheduledEmailService
             const resultadoEnvio = {
                 whatsapp: { success: false, messageId: null, error: null },
                 email: { success: false, messageId: null, error: null },
@@ -298,7 +299,7 @@ class CronSchedulerService {
 
             // FORMATO: Construir mensagem amigável com dados dos boletos
             const mensagemAmigavel = this.construirMensagemAmigavel(clienteData, boletos);
-            
+
             // Dados para envio via WhatsApp e Email
             const dadosEnvio = {
                 cliente: clienteData,
@@ -311,15 +312,28 @@ class CronSchedulerService {
             if (clienteData.celular) {
                 try {
                     console.log(`📱 [CRON] Enviando via WhatsApp para: ${clienteData.celular}`);
-                    // TODO: Implementar integração com scheduledWhatsappService
-                    resultadoEnvio.whatsapp = {
-                        success: true,
-                        messageId: `WHATS_${Date.now()}`,
-                        status: 'enviado',
-                        timestamp: new Date().toISOString()
-                    };
-                    resultadoEnvio.mensagensEnviadas++;
-                    console.log(`✅ [CRON] WhatsApp enviado com sucesso`);
+
+                    const resultadoWhatsApp = await scheduledWhatsappService.enviarMensagemBoletos(dadosEnvio);
+
+                    if (resultadoWhatsApp.success) {
+                        resultadoEnvio.whatsapp = {
+                            success: true,
+                            messageId: resultadoWhatsApp.messageId,
+                            status: resultadoWhatsApp.status,
+                            timestamp: resultadoWhatsApp.timestamp,
+                            duration: resultadoWhatsApp.duration
+                        };
+                        resultadoEnvio.mensagensEnviadas++;
+                        console.log(`✅ [CRON] WhatsApp enviado com sucesso: ${resultadoWhatsApp.messageId}`);
+                    } else {
+                        resultadoEnvio.whatsapp = {
+                            success: false,
+                            error: resultadoWhatsApp.error,
+                            timestamp: resultadoWhatsApp.timestamp,
+                            duration: resultadoWhatsApp.duration
+                        };
+                        console.error(`❌ [CRON] Erro no WhatsApp: ${resultadoWhatsApp.error}`);
+                    }
                 } catch (errorWhatsApp) {
                     console.error(`❌ [CRON] Erro no WhatsApp:`, errorWhatsApp);
                     resultadoEnvio.whatsapp = {
@@ -334,15 +348,28 @@ class CronSchedulerService {
             if (clienteData.email) {
                 try {
                     console.log(`📧 [CRON] Enviando via Email para: ${clienteData.email}`);
-                    // TODO: Implementar integração com scheduledEmailService
-                    resultadoEnvio.email = {
-                        success: true,
-                        messageId: `EMAIL_${Date.now()}`,
-                        status: 'enviado',
-                        timestamp: new Date().toISOString()
-                    };
-                    resultadoEnvio.mensagensEnviadas++;
-                    console.log(`✅ [CRON] Email enviado com sucesso`);
+
+                    const resultadoEmail = await scheduledEmailService.enviarEmailBoletos(dadosEnvio);
+
+                    if (resultadoEmail.success) {
+                        resultadoEnvio.email = {
+                            success: true,
+                            messageId: resultadoEmail.messageId,
+                            status: resultadoEmail.status,
+                            timestamp: resultadoEmail.timestamp,
+                            duration: resultadoEmail.duration
+                        };
+                        resultadoEnvio.mensagensEnviadas++;
+                        console.log(`✅ [CRON] Email enviado com sucesso: ${resultadoEmail.messageId}`);
+                    } else {
+                        resultadoEnvio.email = {
+                            success: false,
+                            error: resultadoEmail.error,
+                            timestamp: resultadoEmail.timestamp,
+                            duration: resultadoEmail.duration
+                        };
+                        console.error(`❌ [CRON] Erro no Email: ${resultadoEmail.error}`);
+                    }
                 } catch (errorEmail) {
                     console.error(`❌ [CRON] Erro no Email:`, errorEmail);
                     resultadoEnvio.email = {
@@ -354,7 +381,9 @@ class CronSchedulerService {
             }
 
             const sucesso = resultadoEnvio.whatsapp.success || resultadoEnvio.email.success;
-            
+
+            console.log(`📊 [CRON] Resultado dos envios - WhatsApp: ${resultadoEnvio.whatsapp.success}, Email: ${resultadoEnvio.email.success}`);
+
             return {
                 success: sucesso,
                 mensagensEnviadas: resultadoEnvio.mensagensEnviadas,
@@ -395,22 +424,24 @@ class CronSchedulerService {
                 currency: 'BRL'
             });
 
-            mensagem += `🧾 *Boleto ${index + 1}/${totalBoletos}*\n`;
-            mensagem += `📄 Número: ${boleto.numero}\n`;
-            mensagem += `💰 Valor: ${valor}\n`;
-            mensagem += `📅 Vencimento: ${dataVencimento}\n`;
-            mensagem += `🔢 Linha Digitável:\n${boleto.linhaDigitavel}\n`;
+            mensagem += `*Boleto ${index + 1}/${totalBoletos}*\n`;
+            mensagem += `*Vencimento:* ${dataVencimento}\n`;
+            mensagem += `*Número:* ${boleto.numero}\n`;
+            mensagem += `*Valor:* ${valor}\n\n`;
+            mensagem += `*Linha Digitável:*\n${boleto.linhaDigitavel}\n\n`;
+            mensagem += `*Link Impressão:*\n${boleto.url}\n`;
             
-            // Link para impressão (se disponível)
-            if (process.env.BOLETO_BASE_URL) {
-                mensagem += `📎 Link: ${process.env.BOLETO_BASE_URL}/${boleto.conta}\n`;
-            }
+            // // Link para impressão (se disponível)
+            // if (boleto.url) {
+            //     //const idConta = boleto.idConta || boleto.conta;
+            //     mensagem += `📎 Link: ${boleto.url}\n`;
+            // }
             
             mensagem += `\n`;
         });
 
-        mensagem += `💡 *Dica:* Você pode copiar a linha digitável e colar no app do seu banco.\n\n`;
-        mensagem += `📞 Em caso de dúvidas, entre em contato conosco.\n\n`;
+        //mensagem += `💡 *Dica:* Você pode copiar a linha digitável e colar no app do seu banco.\n\n`;
+        mensagem += `Em caso de dúvidas, entre em contato conosco.\n\n`;
         mensagem += `Atenciosamente,\n*${empresa}*`;
 
         return mensagem;
@@ -437,31 +468,45 @@ class CronSchedulerService {
                         WHERE idConta = ?
                     `;
                     
-                    const result = await database.executeQuery(query, [statusData, boleto.conta]);
-                    
+                    // Verificar se idConta existe no boleto
+                    const idConta = boleto.idConta || boleto.conta;
+
+                    if (!idConta) {
+                        console.error(`❌ [CRON] idConta não encontrado no boleto:`, boleto);
+                        updates.push({
+                            conta: 'N/A',
+                            success: false,
+                            error: 'idConta não encontrado'
+                        });
+                        continue;
+                    }
+
+                    const result = await database.executeQuery(query, [statusData, idConta]);
+
                     if (result.success) {
                         updates.push({
-                            conta: boleto.conta,
+                            conta: idConta,
                             success: true,
                             timestamp: statusData
                         });
-                        console.log(`✅ [CRON] Status atualizado para boleto: ${boleto.conta}`);
+                        console.log(`✅ [CRON] Status atualizado para boleto: ${idConta}`);
                     } else {
                         updates.push({
-                            conta: boleto.conta,
+                            conta: idConta,
                             success: false,
                             error: result.error
                         });
-                        console.error(`❌ [CRON] Erro ao atualizar boleto ${boleto.conta}:`, result.error);
+                        console.error(`❌ [CRON] Erro ao atualizar boleto ${idConta}:`, result.error);
                     }
 
                 } catch (errorBoleto) {
+                    const idConta = boleto.idConta || boleto.conta || 'N/A';
                     updates.push({
-                        conta: boleto.conta,
+                        conta: idConta,
                         success: false,
                         error: errorBoleto.message
                     });
-                    console.error(`❌ [CRON] Erro ao atualizar boleto ${boleto.conta}:`, errorBoleto);
+                    console.error(`❌ [CRON] Erro ao atualizar boleto ${idConta}:`, errorBoleto);
                 }
             }
 

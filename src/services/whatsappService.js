@@ -244,10 +244,10 @@ async function processarBoletos(conversa) {
 
             const mensagemBoleto = 
                 `🧾 *Boleto #${boleto.numero}*\n` +
-                `💰 Valor: ${valor}\n` +
                 `📅 Vencimento: ${dataVencimento}\n` +
-                `🔢 Linha Digitável:\n${boleto.linhaDigitavel}\n` +
-                `📎 Link: ${process.env.COMPANY_NAME}/boleto/${boleto.conta}`;
+                `💰 Valor: ${valor}\n\n` +
+                `🔢 Linha Digitável:\n${boleto.linhaDigitavel}\n\n` +
+                `📎 Link:\n${boleto.url}`;
 
             await enviarMensagem(conversa.phoneNumber, mensagemBoleto);
         }

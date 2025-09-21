@@ -181,6 +181,7 @@ async function setWebhook(webhookUrl) {
  * @returns {Promise} Status da instância
  */
 async function getInstanceStatus() {
+    //console.log(`${evolutionConfig.baseURL}/instance/connectionState/${evolutionConfig.instanceName}`);
     try {
         const response = await evolutionAPI.get(
             `/instance/connectionState/${evolutionConfig.instanceName}`

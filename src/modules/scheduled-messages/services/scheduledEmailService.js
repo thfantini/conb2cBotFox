@@ -18,14 +18,20 @@ class ScheduledEmailService {
             lastReset: new Date()
         };
         
-        // Inicializar configuração SMTP
-        this.inicializarSMTP();
+        // Inicializar configuração SMTP de forma não-bloqueante
+        this.inicializarSMTP().catch(error => {
+            console.warn(`⚠️ [SCHEDULED-EMAIL] Falha na inicialização SMTP, serviço desabilitado:`, error.message);
+        });
     }
 
     /**
      * Inicializa configuração SMTP do Nodemailer
      */
     async inicializarSMTP() {
+        // Garantir que a inicialização nunca quebre a aplicação
+        this.isConfigured = false;
+        this.transporter = null;
+
         try {
             console.log(`📧 [SCHEDULED-EMAIL] Inicializando configuração SMTP...`);
 
@@ -37,27 +43,67 @@ class ScheduledEmailService {
                 auth: {
                     user: process.env.SMTP_USER,
                     pass: process.env.SMTP_PASS
-                }
+                },
+                connectionTimeout: 5000,  // 5 segundos
+                greetingTimeout: 3000,    // 3 segundos
+                socketTimeout: 5000,      // 5 segundos
+                pool: false,              // Não usar pool de conexões
+                maxConnections: 1,        // Uma conexão por vez
+                maxMessages: 1            // Uma mensagem por conexão
             };
 
             if (!smtpConfig.host || !smtpConfig.auth.user || !smtpConfig.auth.pass) {
                 console.warn(`⚠️ [SCHEDULED-EMAIL] Configuração SMTP incompleta, serviço desabilitado`);
-                this.isConfigured = false;
-                return;
+                console.warn(`⚠️ [SCHEDULED-EMAIL] Variáveis necessárias: SMTP_HOST, SMTP_USER, SMTP_PASS`);
+                return { success: false, error: 'Configuração incompleta' };
             }
 
             // Criar transporter
-            this.transporter = nodemailer.createTransporter(smtpConfig);
+            this.transporter = nodemailer.createTransport(smtpConfig);
 
-            // Testar configuração
-            await this.transporter.verify();
-            
-            this.isConfigured = true;
-            console.log(`✅ [SCHEDULED-EMAIL] SMTP configurado com sucesso: ${smtpConfig.host}:${smtpConfig.port}`);
+            // Testar configuração com timeout mais curto e não-bloqueante
+            console.log(`🔍 [SCHEDULED-EMAIL] Testando conexão com ${smtpConfig.host}:${smtpConfig.port}...`);
+
+            try {
+                const verifyPromise = this.transporter.verify();
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout na verificação SMTP')), 8000)
+                );
+
+                await Promise.race([verifyPromise, timeoutPromise]);
+
+                this.isConfigured = true;
+                console.log(`✅ [SCHEDULED-EMAIL] SMTP configurado com sucesso: ${smtpConfig.host}:${smtpConfig.port}`);
+                return { success: true };
+
+            } catch (verifyError) {
+                // Falha na verificação, mas não quebra a aplicação
+                console.warn(`⚠️ [SCHEDULED-EMAIL] Falha na verificação SMTP: ${verifyError.message}`);
+                console.warn(`⚠️ [SCHEDULED-EMAIL] Serviço de email desabilitado, mas aplicação continua funcionando`);
+
+                // Limpar transporter inválido
+                if (this.transporter) {
+                    try {
+                        this.transporter.close();
+                    } catch (closeError) {
+                        // Ignorar erros ao fechar
+                    }
+                }
+                this.transporter = null;
+                this.isConfigured = false;
+
+                return { success: false, error: verifyError.message };
+            }
 
         } catch (error) {
-            console.error(`❌ [SCHEDULED-EMAIL] Erro na configuração SMTP:`, error);
+            // Capturar qualquer erro e garantir que não quebra a aplicação
+            console.warn(`⚠️ [SCHEDULED-EMAIL] Erro na inicialização SMTP: ${error.message}`);
+            console.warn(`⚠️ [SCHEDULED-EMAIL] Aplicação continua sem serviço de email`);
+
             this.isConfigured = false;
+            this.transporter = null;
+
+            return { success: false, error: error.message };
         }
     }
 
@@ -78,8 +124,8 @@ class ScheduledEmailService {
             console.log(`📧 [SCHEDULED-EMAIL] Email: ${cliente.email}, Boletos: ${boletos.length}`);
 
             // Verificar se o serviço está configurado
-            if (!this.isConfigured) {
-                throw new Error('Serviço de email não está configurado');
+            if (!this.isConfigured || !this.transporter) {
+                throw new Error('Serviço de email não está configurado ou SMTP indisponível');
             }
 
             // Validar dados obrigatórios
@@ -185,14 +231,14 @@ class ScheduledEmailService {
     <title>Boletos Disponíveis - ${empresa}</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #007bff; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header { background: #007bff; color: #FFF; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }
-        .boleto { background: white; margin: 15px 0; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; }
+        .boleto { background: #FFF; margin: 15px 0; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; }
         .boleto-header { font-weight: bold; color: #007bff; margin-bottom: 10px; }
         .boleto-info { margin: 5px 0; }
         .linha-digitavel { background: #e9ecef; padding: 10px; font-family: monospace; word-break: break-all; border-radius: 3px; margin: 10px 0; }
-        .footer { background: #6c757d; color: white; padding: 15px; text-align: center; border-radius: 0 0 8px 8px; font-size: 0.9em; }
-        .btn { display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .footer { background: #6c757d; color: #FFF; padding: 15px; text-align: center; border-radius: 0 0 8px 8px; font-size: 0.9em; }
+        .btn { display: inline-block; background: #007bff; color: #FFF; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
         .alert { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; border-radius: 5px; margin: 10px 0; }
     </style>
 </head>
@@ -226,15 +272,16 @@ class ScheduledEmailService {
             <div class="boleto-info"><strong>Valor:</strong> ${valor}</div>
             <div class="boleto-info"><strong>Vencimento:</strong> ${dataVencimento}</div>
             <div class="boleto-info"><strong>Linha Digitável:</strong></div>
-            <div class="linha-digitavel">${boleto.linhaDigitavel}</div>`;
+            <div class="linha-digitavel">${boleto.linhaDigitavel}</div>
+            <a href="${boleto.url}" class="btn" target="_blank">Imprimir Boleto</a>`;
             
-            // Link para impressão (se disponível)
-            if (process.env.BOLETO_BASE_URL) {
-                html += `
-            <a href="${process.env.BOLETO_BASE_URL}/${boleto.conta}" class="btn" target="_blank">
-                📎 Imprimir Boleto
-            </a>`;
-            }
+            // // Link para impressão (se disponível)
+            // if (boleto.url) {
+            //     html += `
+            // <a href="${boleto.url}" class="btn" target="_blank">
+            //     📎 Imprimir Boleto
+            // </a>`;
+            // }
             
             html += `</div>`;
         });

@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const scheduledWhatsappService = require('../services/scheduledWhatsappService');
+const scheduledEmailService = require('../services/scheduledEmailService');
+const cronSchedulerService = require('../services/cronSchedulerService');
 
 /**
  * Middleware de logging específico para scheduled messages
@@ -313,6 +316,193 @@ router.get('/validate-config', async (req, res) => {
 });
 
 /**
+ * Endpoint para testar conectividade com Evolution API (WhatsApp)
+ * GET /scheduled/test/whatsapp
+ */
+router.get('/test/whatsapp', async (req, res) => {
+    try {
+        console.log(`🔍 [SCHEDULED] Testando conectividade WhatsApp...`);
+
+        const resultadoTeste = await scheduledWhatsappService.testarConectividade();
+
+        if (resultadoTeste.success) {
+            console.log(`✅ [SCHEDULED] Teste WhatsApp bem-sucedido`);
+
+            res.json({
+                success: true,
+                service: 'whatsapp',
+                status: 'connected',
+                message: 'Conectividade com Evolution API funcionando',
+                details: resultadoTeste,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.warn(`⚠️ [SCHEDULED] Teste WhatsApp falhou: ${resultadoTeste.error}`);
+
+            res.status(503).json({
+                success: false,
+                service: 'whatsapp',
+                status: 'disconnected',
+                error: resultadoTeste.error,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [SCHEDULED] Erro no teste WhatsApp:', error);
+
+        res.status(500).json({
+            success: false,
+            service: 'whatsapp',
+            status: 'error',
+            error: 'Erro interno ao testar conectividade WhatsApp',
+            details: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * Endpoint para testar conectividade SMTP (Email)
+ * GET /scheduled/test/email
+ */
+router.get('/test/email', async (req, res) => {
+    try {
+        console.log(`🔍 [SCHEDULED] Testando conectividade Email...`);
+
+        const resultadoTeste = await scheduledEmailService.testarConectividade();
+
+        if (resultadoTeste.success) {
+            console.log(`✅ [SCHEDULED] Teste Email bem-sucedido`);
+
+            res.json({
+                success: true,
+                service: 'email',
+                status: 'connected',
+                message: 'Conectividade SMTP funcionando',
+                details: resultadoTeste,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.warn(`⚠️ [SCHEDULED] Teste Email falhou: ${resultadoTeste.error}`);
+
+            res.status(503).json({
+                success: false,
+                service: 'email',
+                status: 'disconnected',
+                error: resultadoTeste.error,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [SCHEDULED] Erro no teste Email:', error);
+
+        res.status(500).json({
+            success: false,
+            service: 'email',
+            status: 'error',
+            error: 'Erro interno ao testar conectividade Email',
+            details: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * Endpoint para testar conectividade de ambos os serviços
+ * GET /scheduled/test/all
+ */
+router.get('/test/all', async (req, res) => {
+    try {
+        console.log(`🔍 [SCHEDULED] Testando conectividade de todos os serviços...`);
+
+        const [whatsappTest, emailTest] = await Promise.allSettled([
+            scheduledWhatsappService.testarConectividade(),
+            scheduledEmailService.testarConectividade()
+        ]);
+
+        const resultados = {
+            whatsapp: {
+                status: whatsappTest.status === 'fulfilled' && whatsappTest.value.success ? 'connected' : 'disconnected',
+                details: whatsappTest.status === 'fulfilled' ? whatsappTest.value : { error: whatsappTest.reason?.message }
+            },
+            email: {
+                status: emailTest.status === 'fulfilled' && emailTest.value.success ? 'connected' : 'disconnected',
+                details: emailTest.status === 'fulfilled' ? emailTest.value : { error: emailTest.reason?.message }
+            }
+        };
+
+        const allConnected = resultados.whatsapp.status === 'connected' && resultados.email.status === 'connected';
+        const anyConnected = resultados.whatsapp.status === 'connected' || resultados.email.status === 'connected';
+
+        const status = allConnected ? 'all_connected' : (anyConnected ? 'partial_connected' : 'disconnected');
+
+        console.log(`📊 [SCHEDULED] Teste geral: ${status}`);
+
+        res.status(allConnected ? 200 : (anyConnected ? 206 : 503)).json({
+            success: anyConnected,
+            status: status,
+            services: resultados,
+            summary: {
+                whatsapp: resultados.whatsapp.status,
+                email: resultados.email.status,
+                operational: anyConnected
+            },
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ [SCHEDULED] Erro no teste geral:', error);
+
+        res.status(500).json({
+            success: false,
+            status: 'error',
+            error: 'Erro interno ao testar conectividade dos serviços',
+            details: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * Endpoint para obter estatísticas dos serviços
+ * GET /scheduled/stats
+ */
+router.get('/stats', async (req, res) => {
+    try {
+        console.log(`📊 [SCHEDULED] Consultando estatísticas...`);
+
+        const stats = {
+            cron: cronSchedulerService.getStatistics(),
+            whatsapp: scheduledWhatsappService.getStatistics(),
+            email: scheduledEmailService.getStatistics(),
+            system: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                timestamp: new Date().toISOString()
+            }
+        };
+
+        res.json({
+            success: true,
+            data: stats,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ [SCHEDULED] Erro ao obter estatísticas:', error);
+
+        res.status(500).json({
+            success: false,
+            error: 'Erro ao obter estatísticas',
+            details: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
  * Endpoint de documentação da API (apenas desenvolvimento)
  * GET /scheduled/docs
  */
@@ -353,6 +543,30 @@ if (process.env.NODE_ENV === 'development') {
                     method: 'GET',
                     path: '/validate-config',
                     description: 'Validação das variáveis de ambiente',
+                    authentication: false
+                },
+                {
+                    method: 'GET',
+                    path: '/test/whatsapp',
+                    description: 'Testa conectividade com Evolution API (WhatsApp)',
+                    authentication: false
+                },
+                {
+                    method: 'GET',
+                    path: '/test/email',
+                    description: 'Testa conectividade SMTP (Email)',
+                    authentication: false
+                },
+                {
+                    method: 'GET',
+                    path: '/test/all',
+                    description: 'Testa conectividade de todos os serviços',
+                    authentication: false
+                },
+                {
+                    method: 'GET',
+                    path: '/stats',
+                    description: 'Estatísticas detalhadas dos serviços',
                     authentication: false
                 }
             ],

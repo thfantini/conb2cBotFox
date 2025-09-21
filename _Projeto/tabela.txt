@@ -53,6 +53,43 @@ WHERE whapi_clientes_boleto.status = 0
 
 ---------------------------------------------
 
+SELECT
+whapi_clientes_boleto.cliente,
+whapi_clientes_boleto.cnpj,
+whapi_clientes_boleto.nome,
+whapi_clientes_boleto.celular,
+whapi_clientes_boleto.email,
+whapi_clientes_boleto.idConta,
+whapi_clientes_boleto.idNfse,
+whapi_clientes_boleto.dataDoc,
+whapi_clientes_boleto.dataVencimento,
+whapi_clientes_boleto.numero,
+whapi_clientes_boleto.valor,
+whapi_clientes_boleto.codBarras,
+whapi_clientes_boleto.linhaDigitavel,
+CONCAT(aux_app.url,whapi_clientes_boleto.idConta,'/') as url,
+whapi_clientes_boleto.`status`
+FROM whapi_clientes_boleto
+LEFT JOIN aux_app ON aux_app.cliente = whapi_clientes_boleto.cliente
+WHERE whapi_clientes_boleto.status = 0 
+
+
+---------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `aux_app` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(100) DEFAULT NULL,
+  `cliente` int(11) DEFAULT 0,
+  `status` int(11) DEFAULT 0,
+  `data_inicio` date DEFAULT NULL,
+  `data_fim` date DEFAULT NULL,
+  `hora_inicio` time DEFAULT NULL,
+  `hora_fim` time DEFAULT NULL,
+  `sinc_data` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci;
+
+
 
 
 

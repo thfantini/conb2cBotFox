@@ -161,7 +161,7 @@ class WhatsAppBot {
         // Rotas de webhook
         this.app.use('/webhook', webhookRoutes);
 
-        // Rotas de webhook para grupos
+        // Rotas de webhook para grupos (micro-serviço)
         this.app.use('/webhook-group', webhookGroupRoutes);
 
         // Rotas de webhook-message (micro-serviço)
@@ -170,7 +170,7 @@ class WhatsAppBot {
         // Rotas de QR Code
         this.app.use('/qrcode', qrcodeRoutes);
 
-        // Rotas CRON
+        // Rotas CRON (micro-serviço)
         this.app.use('/scheduled', scheduledRoutes);
 
         // Rota de health check

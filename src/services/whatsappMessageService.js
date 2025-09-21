@@ -1,68 +1,32 @@
-const nodemailer = require('nodemailer');
+const evolutionAPI = require('../config/evolution');
 
 /**
- * Serviço específico para envio de mensagens via Email
+ * Serviço específico para envio de mensagens via WhatsApp
  * Módulo independente para o micro-serviço de mensagens
  */
-class EmailMessageService {
+class WhatsAppMessageService {
 
     /**
-     * Configuração do transportador de email
-     * @returns {Object} Transporter do nodemailer
-     */
-    static criarTransporter() {
-        try {
-            const transporter = nodemailer.createTransporter({
-                host: process.env.SMTP_HOST || 'localhost',
-                port: process.env.SMTP_PORT || 587,
-                secure: process.env.SMTP_SECURE === 'true', // true para 465, false para outros
-                auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS
-                },
-                tls: {
-                    rejectUnauthorized: false
-                }
-            });
-
-            return transporter;
-
-        } catch (error) {
-            console.error('❌ Erro ao criar transporter de email:', error);
-            throw new Error('Falha na configuração do serviço de email');
-        }
-    }
-
-    /**
-     * Envia mensagem via Email para cliente autorizado
+     * Envia mensagem via WhatsApp para cliente autorizado
      * @param {Object} dadosEnvio - Dados consolidados para envio
      * @returns {Promise<Object>} Resultado do envio
      */
     static async enviarMensagem(dadosEnvio) {
         try {
-            const { cnpj, email, mensagem, timestamp } = dadosEnvio;
+            const { cnpj, celular, mensagem, timestamp } = dadosEnvio;
             
-            console.log(`📧 Iniciando envio Email para: ${email}`);
+            console.log(`📱 Iniciando envio WhatsApp para: ${celular}`);
 
-            // Validar email
-            if (!EmailMessageService.validarEmail(email)) {
-                console.error(`❌ Email inválido: ${email}`);
+            // Formatar número para padrão Evolution API
+            const numeroFormatado = WhatsAppMessageService.formatarNumero(celular);
+            
+            // Validar número formatado
+            if (!numeroFormatado) {
+                console.error(`❌ Número inválido para WhatsApp: ${celular}`);
                 return {
                     success: false,
                     status: 'erro',
-                    error: 'Endereço de email inválido',
-                    timestamp: new Date().toISOString()
-                };
-            }
-
-            // Verificar disponibilidade do serviço
-            const servicoDisponivel = await EmailMessageService.verificarDisponibilidade();
-            if (!servicoDisponivel) {
-                console.error(`❌ Serviço de email indisponível`);
-                return {
-                    success: false,
-                    status: 'erro',
-                    error: 'Serviço de email temporariamente indisponível',
+                    error: 'Número de celular inválido',
                     timestamp: new Date().toISOString()
                 };
             }
@@ -71,19 +35,19 @@ class EmailMessageService {
 
             // Determinar tipo de mensagem e enviar
             if (mensagem.texto && !mensagem.imagem) {
-                // Envio de email de texto
-                resultadoEnvio = await EmailMessageService.enviarTexto(email, mensagem.texto, cnpj);
+                // Envio de mensagem de texto
+                resultadoEnvio = await WhatsAppMessageService.enviarTexto(numeroFormatado, mensagem.texto);
             } 
             else if (mensagem.imagem && !mensagem.texto) {
-                // Envio de email com imagem
-                resultadoEnvio = await EmailMessageService.enviarImagem(email, mensagem.imagem, cnpj);
+                // Envio de mensagem de imagem
+                resultadoEnvio = await WhatsAppMessageService.enviarImagem(numeroFormatado, mensagem.imagem);
             }
             else if (mensagem.texto && mensagem.imagem) {
-                // Envio de email com texto e imagem
-                resultadoEnvio = await EmailMessageService.enviarTextoComImagem(email, mensagem.texto, mensagem.imagem, cnpj);
+                // Envio de imagem com legenda
+                resultadoEnvio = await WhatsAppMessageService.enviarImagemComLegenda(numeroFormatado, mensagem.imagem, mensagem.texto);
             }
             else {
-                console.error(`❌ Tipo de mensagem não suportado para email`);
+                console.error(`❌ Tipo de mensagem não suportado`);
                 return {
                     success: false,
                     status: 'erro',
@@ -94,23 +58,23 @@ class EmailMessageService {
 
             // Log do resultado
             if (resultadoEnvio.success) {
-                console.log(`✅ Email enviado com sucesso para: ${email}`);
+                console.log(`✅ WhatsApp enviado com sucesso para: ${celular}`);
             } else {
-                console.error(`❌ Falha no envio de email para: ${email} - ${resultadoEnvio.error}`);
+                console.error(`❌ Falha no envio WhatsApp para: ${celular} - ${resultadoEnvio.error}`);
             }
 
             return {
                 success: resultadoEnvio.success,
                 status: resultadoEnvio.success ? 'enviado' : 'erro',
-                messageId: resultadoEnvio.messageId || null,
+                messageId: resultadoEnvio.data?.messageId || null,
                 error: resultadoEnvio.error || null,
-                email: email,
-                tipoMensagem: EmailMessageService.obterTipoMensagem(mensagem),
+                numero: numeroFormatado,
+                tipoMensagem: WhatsAppMessageService.obterTipoMensagem(mensagem),
                 timestamp: new Date().toISOString()
             };
 
         } catch (error) {
-            console.error('❌ Erro no serviço Email:', error);
+            console.error('❌ Erro no serviço WhatsApp:', error);
             return {
                 success: false,
                 status: 'erro',
@@ -121,331 +85,175 @@ class EmailMessageService {
     }
 
     /**
-     * Envia email com texto simples
-     * @param {string} email - Endereço de email
+     * Envia mensagem de texto simples
+     * @param {string} numero - Número formatado
      * @param {string} texto - Texto da mensagem
-     * @param {string} cnpj - CNPJ do cliente para referência
      * @returns {Promise<Object>} Resultado do envio
      */
-    static async enviarTexto(email, texto, cnpj) {
+    static async enviarTexto(numero, texto) {
         try {
-            console.log(`📝 Enviando email texto para: ${email}`);
+            console.log(`📝 Enviando texto para: ${numero}`);
             
-            const transporter = EmailMessageService.criarTransporter();
+            const resultado = await evolutionAPI.sendTextMessage(numero, texto);
             
-            const assunto = `${process.env.COMPANY_NAME || 'Sistema'} - Nova Mensagem`;
-            const corpoEmail = EmailMessageService.construirCorpoTexto(texto, cnpj);
-            
-            const mailOptions = {
-                from: `"${process.env.COMPANY_NAME || 'Sistema'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-                to: email,
-                subject: assunto,
-                html: corpoEmail,
-                text: EmailMessageService.converterHtmlParaTexto(corpoEmail)
-            };
-
-            const resultado = await transporter.sendMail(mailOptions);
-            
-            return {
-                success: true,
-                messageId: resultado.messageId,
-                error: null
-            };
+            return resultado;
 
         } catch (error) {
-            console.error('Erro no envio de email texto:', error);
+            console.error('Erro no envio de texto:', error);
             return {
                 success: false,
-                messageId: null,
                 error: error.message
             };
         }
     }
 
     /**
-     * Envia email com imagem
-     * @param {string} email - Endereço de email
+     * Envia mensagem de imagem
+     * @param {string} numero - Número formatado
      * @param {Object} imagem - Dados da imagem
-     * @param {string} cnpj - CNPJ do cliente para referência
      * @returns {Promise<Object>} Resultado do envio
      */
-    static async enviarImagem(email, imagem, cnpj) {
+    static async enviarImagem(numero, imagem) {
         try {
-            console.log(`🖼️ Enviando email imagem para: ${email}`);
+            console.log(`🖼️ Enviando imagem para: ${numero}`);
             
-            const transporter = EmailMessageService.criarTransporter();
+            // Preparar payload da imagem baseado no tipo
+            let imagemPayload;
             
-            const assunto = `${process.env.COMPANY_NAME || 'Sistema'} - Nova Imagem`;
-            const corpoEmail = EmailMessageService.construirCorpoImagem(imagem, cnpj);
-            
-            const mailOptions = {
-                from: `"${process.env.COMPANY_NAME || 'Sistema'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-                to: email,
-                subject: assunto,
-                html: corpoEmail,
-                text: EmailMessageService.converterHtmlParaTexto(corpoEmail)
-            };
-
-            // Anexar imagem se necessário
-            await EmailMessageService.adicionarAnexoImagem(mailOptions, imagem);
-
-            const resultado = await transporter.sendMail(mailOptions);
-            
-            return {
-                success: true,
-                messageId: resultado.messageId,
-                error: null
-            };
-
-        } catch (error) {
-            console.error('Erro no envio de email imagem:', error);
-            return {
-                success: false,
-                messageId: null,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Envia email com texto e imagem
-     * @param {string} email - Endereço de email
-     * @param {string} texto - Texto da mensagem
-     * @param {Object} imagem - Dados da imagem
-     * @param {string} cnpj - CNPJ do cliente para referência
-     * @returns {Promise<Object>} Resultado do envio
-     */
-    static async enviarTextoComImagem(email, texto, imagem, cnpj) {
-        try {
-            console.log(`📝🖼️ Enviando email texto+imagem para: ${email}`);
-            
-            const transporter = EmailMessageService.criarTransporter();
-            
-            const assunto = `${process.env.COMPANY_NAME || 'Sistema'} - Nova Mensagem`;
-            const corpoEmail = EmailMessageService.construirCorpoTextoComImagem(texto, imagem, cnpj);
-            
-            const mailOptions = {
-                from: `"${process.env.COMPANY_NAME || 'Sistema'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-                to: email,
-                subject: assunto,
-                html: corpoEmail,
-                text: EmailMessageService.converterHtmlParaTexto(corpoEmail)
-            };
-
-            // Anexar imagem se necessário
-            await EmailMessageService.adicionarAnexoImagem(mailOptions, imagem);
-
-            const resultado = await transporter.sendMail(mailOptions);
-            
-            return {
-                success: true,
-                messageId: resultado.messageId,
-                error: null
-            };
-
-        } catch (error) {
-            console.error('Erro no envio de email texto+imagem:', error);
-            return {
-                success: false,
-                messageId: null,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Constrói corpo do email para texto simples
-     * @param {string} texto - Texto da mensagem
-     * @param {string} cnpj - CNPJ do cliente
-     * @returns {string} HTML do email
-     */
-    static construirCorpoTexto(texto, cnpj) {
-        const agora = new Date().toLocaleString('pt-BR');
-        
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Nova Mensagem</title>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
-                    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-                    .header { background: #25D366; color: white; padding: 15px; text-align: center; border-radius: 5px; margin-bottom: 20px; }
-                    .content { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0; }
-                    .footer { font-size: 12px; color: #666; text-align: center; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h2>${process.env.COMPANY_NAME || 'Sistema'}</h2>
-                        <p>Nova mensagem recebida</p>
-                    </div>
-                    
-                    <div class="content">
-                        <h3>📱 Mensagem:</h3>
-                        <p>${texto.replace(/\n/g, '<br>')}</p>
-                    </div>
-                    
-                    <div class="footer">
-                        <p><strong>CNPJ:</strong> ${cnpj}</p>
-                        <p><strong>Data/Hora:</strong> ${agora}</p>
-                        <p>Esta é uma cópia da mensagem enviada via WhatsApp</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-    }
-
-    /**
-     * Constrói corpo do email para imagem
-     * @param {Object} imagem - Dados da imagem
-     * @param {string} cnpj - CNPJ do cliente
-     * @returns {string} HTML do email
-     */
-    static construirCorpoImagem(imagem, cnpj) {
-        const agora = new Date().toLocaleString('pt-BR');
-        const legenda = imagem.legenda || '';
-        
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Nova Imagem</title>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
-                    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-                    .header { background: #25D366; color: white; padding: 15px; text-align: center; border-radius: 5px; margin-bottom: 20px; }
-                    .content { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0; text-align: center; }
-                    .footer { font-size: 12px; color: #666; text-align: center; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
-                    .imagem { max-width: 100%; height: auto; border-radius: 5px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h2>${process.env.COMPANY_NAME || 'Sistema'}</h2>
-                        <p>Nova imagem recebida</p>
-                    </div>
-                    
-                    <div class="content">
-                        <h3>🖼️ Imagem:</h3>
-                        ${imagem.url ? `<img src="${imagem.url}" alt="Imagem enviada" class="imagem">` : '<p>Imagem anexada ao email</p>'}
-                        ${legenda ? `<p><strong>Legenda:</strong> ${legenda}</p>` : ''}
-                    </div>
-                    
-                    <div class="footer">
-                        <p><strong>CNPJ:</strong> ${cnpj}</p>
-                        <p><strong>Data/Hora:</strong> ${agora}</p>
-                        <p>Esta é uma cópia da mensagem enviada via WhatsApp</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-    }
-
-    /**
-     * Constrói corpo do email para texto com imagem
-     * @param {string} texto - Texto da mensagem
-     * @param {Object} imagem - Dados da imagem
-     * @param {string} cnpj - CNPJ do cliente
-     * @returns {string} HTML do email
-     */
-    static construirCorpoTextoComImagem(texto, imagem, cnpj) {
-        const agora = new Date().toLocaleString('pt-BR');
-        
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Nova Mensagem</title>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; }
-                    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-                    .header { background: #25D366; color: white; padding: 15px; text-align: center; border-radius: 5px; margin-bottom: 20px; }
-                    .content { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0; }
-                    .footer { font-size: 12px; color: #666; text-align: center; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
-                    .imagem { max-width: 100%; height: auto; border-radius: 5px; text-align: center; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h2>${process.env.COMPANY_NAME || 'Sistema'}</h2>
-                        <p>Nova mensagem recebida</p>
-                    </div>
-                    
-                    <div class="content">
-                        <h3>📱 Mensagem:</h3>
-                        <p>${texto.replace(/\n/g, '<br>')}</p>
-                        
-                        <h3>🖼️ Imagem:</h3>
-                        <div class="imagem">
-                            ${imagem.url ? `<img src="${imagem.url}" alt="Imagem enviada" style="max-width: 100%; height: auto; border-radius: 5px;">` : '<p>Imagem anexada ao email</p>'}
-                        </div>
-                    </div>
-                    
-                    <div class="footer">
-                        <p><strong>CNPJ:</strong> ${cnpj}</p>
-                        <p><strong>Data/Hora:</strong> ${agora}</p>
-                        <p>Esta é uma cópia da mensagem enviada via WhatsApp</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-    }
-
-    /**
-     * Adiciona anexo de imagem ao email se necessário
-     * @param {Object} mailOptions - Opções do email
-     * @param {Object} imagem - Dados da imagem
-     */
-    static async adicionarAnexoImagem(mailOptions, imagem) {
-        try {
-            if (imagem.base64) {
-                // Anexar imagem base64
-                mailOptions.attachments = mailOptions.attachments || [];
-                mailOptions.attachments.push({
-                    filename: 'imagem.png',
-                    content: imagem.base64.split(',')[1] || imagem.base64,
-                    encoding: 'base64'
-                });
+            if (imagem.url) {
+                imagemPayload = {
+                    image: imagem.url,
+                    caption: imagem.legenda || ''
+                };
+            } else if (imagem.base64) {
+                imagemPayload = {
+                    image: imagem.base64,
+                    caption: imagem.legenda || ''
+                };
+            } else {
+                throw new Error('Formato de imagem não suportado');
             }
-            // Para URLs, a imagem já está incluída no HTML
+
+            // Usar método específico da Evolution API para imagens
+            const resultado = await WhatsAppMessageService.enviarImagemEvolution(numero, imagemPayload);
+            
+            return resultado;
+
         } catch (error) {
-            console.warn('⚠️ Erro ao anexar imagem:', error);
+            console.error('Erro no envio de imagem:', error);
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
 
     /**
-     * Converte HTML para texto simples
-     * @param {string} html - HTML a ser convertido
-     * @returns {string} Texto simples
+     * Envia imagem com legenda (texto)
+     * @param {string} numero - Número formatado
+     * @param {Object} imagem - Dados da imagem
+     * @param {string} texto - Texto/legenda
+     * @returns {Promise<Object>} Resultado do envio
      */
-    static converterHtmlParaTexto(html) {
-        return html
-            .replace(/<[^>]*>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .trim();
+    static async enviarImagemComLegenda(numero, imagem, texto) {
+        try {
+            console.log(`🖼️📝 Enviando imagem com legenda para: ${numero}`);
+            
+            // Adicionar texto como legenda da imagem
+            const imagemComLegenda = {
+                ...imagem,
+                legenda: texto
+            };
+            
+            return await WhatsAppMessageService.enviarImagem(numero, imagemComLegenda);
+
+        } catch (error) {
+            console.error('Erro no envio de imagem com legenda:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
 
     /**
-     * Valida formato do email
-     * @param {string} email - Email a ser validado
-     * @returns {boolean} Válido ou não
+     * Método específico para envio de imagem via Evolution API
+     * @param {string} numero - Número formatado
+     * @param {Object} imagemPayload - Payload da imagem
+     * @returns {Promise<Object>} Resultado do envio
      */
-    static validarEmail(email) {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(email);
+    static async enviarImagemEvolution(numero, imagemPayload) {
+        try {
+            // Utilizar método específico da Evolution API para imagens
+            // Adaptando para o padrão da Evolution API baseado no evolutionAPI existente
+            
+            const payload = {
+                number: numero,
+                mediaMessage: {
+                    mediatype: 'image',
+                    ...imagemPayload
+                }
+            };
+
+            // Simular envio baseado na estrutura do evolutionAPI existente
+            // TODO: Ajustar conforme método real da Evolution API para imagens
+            const response = await evolutionAPI.evolutionAPI.post(
+                `/message/sendMedia/${process.env.EVOLUTION_INSTANCE_NAME}`,
+                payload
+            );
+
+            return {
+                success: true,
+                data: response.data,
+                error: null
+            };
+
+        } catch (error) {
+            console.error('Erro na Evolution API para imagem:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.response?.data?.message || error.message
+            };
+        }
+    }
+
+    /**
+     * Formatar número para padrão Evolution API (brasileiro)
+     * @param {string} numero - Número a ser formatado
+     * @returns {string|null} Número formatado ou null se inválido
+     */
+    static formatarNumero(numero) {
+        try {
+            // Remove caracteres não numéricos
+            let numeroLimpo = numero.replace(/\D/g, '');
+            
+            // Validação básica de tamanho
+            if (numeroLimpo.length < 10 || numeroLimpo.length > 13) {
+                return null;
+            }
+            
+            // Adiciona código do país se não existir
+            if (!numeroLimpo.startsWith('55')) {
+                numeroLimpo = '55' + numeroLimpo;
+            }
+            
+            // Adiciona 9 no celular se necessário (padrão brasileiro)
+            if (numeroLimpo.length === 12 && numeroLimpo.substring(4, 5) !== '9') {
+                numeroLimpo = numeroLimpo.substring(0, 4) + '9' + numeroLimpo.substring(4);
+            }
+            
+            // Validação final
+            if (numeroLimpo.length !== 13) {
+                return null;
+            }
+            
+            return numeroLimpo;
+
+        } catch (error) {
+            console.error('Erro na formatação do número:', error);
+            return null;
+        }
     }
 
     /**
@@ -455,7 +263,7 @@ class EmailMessageService {
      */
     static obterTipoMensagem(mensagem) {
         if (mensagem.texto && mensagem.imagem) {
-            return 'texto_com_imagem';
+            return 'imagem_com_legenda';
         } else if (mensagem.imagem) {
             return 'imagem';
         } else if (mensagem.texto) {
@@ -466,25 +274,23 @@ class EmailMessageService {
     }
 
     /**
-     * Verifica se o serviço de Email está disponível
+     * Valida se o serviço WhatsApp está disponível
      * @returns {Promise<boolean>} Status do serviço
      */
     static async verificarDisponibilidade() {
         try {
-            // Validar se as configurações SMTP estão presentes
-            if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-                console.warn('⚠️ Configurações SMTP não encontradas');
+            const status = await evolutionAPI.getInstanceStatus();
+            
+            if (status.success && status.data?.state === 'open') {
+                console.log('✅ Serviço WhatsApp disponível');
+                return true;
+            } else {
+                console.warn('⚠️ Serviço WhatsApp indisponível ou desconectado');
                 return false;
             }
-
-            const transporter = EmailMessageService.criarTransporter();
-            await transporter.verify();
-            
-            console.log('✅ Serviço Email disponível');
-            return true;
             
         } catch (error) {
-            console.error('❌ Erro ao verificar disponibilidade Email:', error);
+            console.error('❌ Erro ao verificar disponibilidade WhatsApp:', error);
             return false;
         }
     }
@@ -496,13 +302,12 @@ class EmailMessageService {
     static obterEstatisticas() {
         return {
             servicoAtivo: true,
-            tiposSuportados: ['texto', 'imagem', 'texto_com_imagem'],
+            tiposSuportados: ['texto', 'imagem', 'imagem_com_legenda'],
             formatosImagem: ['url', 'base64'],
-            templateHtml: true,
-            anexosSuportados: true,
+            limiteTamanhoTexto: 4096,
             timestamp: new Date().toISOString()
         };
     }
 }
 
-module.exports = EmailMessageService;
+module.exports = WhatsAppMessageService;
