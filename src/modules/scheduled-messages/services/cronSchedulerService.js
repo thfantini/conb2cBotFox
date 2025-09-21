@@ -250,9 +250,8 @@ class CronSchedulerService {
     async buscarBoletosPendentes(clienteId) {
         try {
             const query = `
-                SELECT cliente, cnpj, nome, celular, nfse, conta, empNome, empCNPJ,
-                       dataDoc, dataVencimento, numero, valor, codBarras, linhaDigitavel,
-                       COALESCE(email, CONCAT(LOWER(REPLACE(nome, ' ', '.')), '@empresa.com')) as email
+                SELECT cliente, cnpj, nome, celular, idNfse, idConta,
+                       dataDoc, dataVencimento, numero, valor, codBarras, linhaDigitavel, email
                 FROM vw_boletos 
                 WHERE cliente = ? 
                 AND status = 0
@@ -433,8 +432,8 @@ class CronSchedulerService {
             for (const boleto of boletos) {
                 try {
                     const query = `
-                        UPDATE boletos 
-                        SET status = 1, status_data = ?
+                        UPDATE whapi_clientes_boleto 
+                        SET status = 1, statusData = ?
                         WHERE idConta = ?
                     `;
                     

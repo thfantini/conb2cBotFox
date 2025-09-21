@@ -31,5 +31,30 @@ DIRETRIZES
 7 - nenhuma informação deve ser mocada, todas serao disponibilizadas atraves do banco de dados;
 8 - siga sempre o mesmo padrao de codigo sujerido no repositorio referencia.
 
+---------------------------------------------
+
+vw_boletos > vw_botboletos
+SELECT
+whapi_clientes_boleto.cliente,
+whapi_clientes_boleto.cnpj,
+whapi_clientes_boleto.nome,
+whapi_clientes_boleto.celular,
+whapi_clientes_boleto.email,
+whapi_clientes_boleto.idConta,
+whapi_clientes_boleto.idNfse,
+whapi_clientes_boleto.dataDoc,
+whapi_clientes_boleto.dataVencimento,
+whapi_clientes_boleto.numero,
+whapi_clientes_boleto.valor,
+whapi_clientes_boleto.codBarras,
+whapi_clientes_boleto.linhaDigitavel
+FROM whapi_clientes_boleto
+WHERE whapi_clientes_boleto.status = 0
+
+---------------------------------------------
+
+
+
+
 
 

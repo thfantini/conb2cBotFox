@@ -14,9 +14,6 @@ const dbConfig = {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    acquireTimeout: 60000,
-    timeout: 60000,
-    reconnect: true,
     charset: 'utf8mb4'
 };
 
@@ -151,7 +148,7 @@ async function testConnection() {
         await connection.ping();
         connection.release();
         //console.log('✅ Conexão com banco de dados estabelecida com sucesso');
-        logger.success('✅ MySQL conectado com sucesso!');
+        logger.info('✅ MySQL conectado com sucesso!');
         logger.info(`📊 Database: ${dbConfig.database}`);
         logger.info(`🖥️  Host: ${dbConfig.host}:${dbConfig.port}`);
         return true;
