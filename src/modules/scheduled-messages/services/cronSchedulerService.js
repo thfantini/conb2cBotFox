@@ -413,7 +413,7 @@ class CronSchedulerService {
         const empresa = process.env.COMPANY_NAME || 'Nossa Empresa';
 
         // Mensagem amigável inicial
-        let mensagem = `🤖 *Olá, ${nomeCliente}!*\n\n`;
+        let mensagem = `👋 *Olá, ${nomeCliente}!*\n\n`;
         mensagem += `📬 Você possui *${totalBoletos} boleto(s)* disponível(is) para pagamento:\n\n`;
 
         // Adicionar dados de cada boleto (baseado na função processarBoletos)

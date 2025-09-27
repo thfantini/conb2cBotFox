@@ -1,0 +1,50 @@
+# Use Node.js LTS (Long Term Support) como imagem base
+FROM node:18-alpine
+
+# Definir informações do mantenedor
+LABEL maintainer="WhatsApp Bot Team"
+LABEL description="Bot de atendimento ao cliente integrado ao WhatsApp via Evolution API"
+
+# Criar usuário não-root para segurança
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema necessárias para MySQL e outras libs
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    mysql-client
+
+# Copiar arquivos de dependência primeiro (para otimizar cache do Docker)
+COPY package*.json ./
+
+# Definir variáveis de ambiente para Node.js
+ENV NODE_ENV=production
+ENV NPM_CONFIG_LOGLEVEL=warn
+
+# Instalar dependências de produção
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copiar código fonte da aplicação
+COPY . .
+
+# Alterar proprietário dos arquivos para o usuário nodejs
+RUN chown -R nodejs:nodejs /app
+
+# Trocar para usuário não-root
+USER nodejs
+
+# Expor porta da aplicação (ajustar conforme necessário)
+EXPOSE 3000
+
+# Configurar health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node healthcheck.js || exit 1
+
+# Comando para iniciar a aplicação
+CMD ["node", "index.js"]
