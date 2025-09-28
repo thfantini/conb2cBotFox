@@ -1,180 +1,231 @@
 // src/modules/scheduled-messages/services/scheduledEmailService.js
-// Adicionar esta configuração melhorada para o SMTP
+// CORREÇÃO CRÍTICA: Import correto do nodemailer
 
+const nodemailer = require('nodemailer'); // ← IMPORT EXPLÍCITO ADICIONADO
+
+/**
+ * Serviço específico para envio de emails programados
+ * VERSÃO CORRIGIDA - Evita quebrar a aplicação
+ */
 class ScheduledEmailService {
     constructor() {
         this.transporter = null;
         this.isConfigured = false;
-        this.connectionTested = false;
-        this.maxRetries = 3;
-        this.timeout = parseInt(process.env.SMTP_TIMEOUT) || 10000; // 10s timeout
-        this.connectionTimeout = parseInt(process.env.SMTP_CONNECTION_TIMEOUT) || 30000; // 30s connection timeout
+        this.statistics = {
+            totalEnvios: 0,
+            totalSucessos: 0,
+            totalFalhas: 0,
+            ultimoEnvio: null
+        };
         
-        this.initSMTP();
+        // CORREÇÃO: Inicialização não-bloqueante
+        this.initializeAsync();
     }
 
-    async initSMTP() {
+    /**
+     * Inicialização assíncrona que NÃO quebra a aplicação
+     */
+    async initializeAsync() {
         try {
             console.log('📧 [SCHEDULED-EMAIL] Inicializando configuração SMTP...');
             
-            // Skip SMTP se configurado para pular
+            // SKIP se SMTP_HOST não definido
+            if (!process.env.SMTP_HOST) {
+                console.log('⏭️ [SCHEDULED-EMAIL] SMTP_HOST não definido, pularemos configuração');
+                return;
+            }
+
+            // SKIP se marcado para pular teste
             if (process.env.SKIP_SMTP_TEST === 'true') {
-                console.log('⏭️ [SCHEDULED-EMAIL] SMTP test ignorado por configuração');
+                console.log('⏭️ [SCHEDULED-EMAIL] SKIP_SMTP_TEST=true, pularemos teste');
                 return;
             }
 
-            if (!this.validateSMTPConfig()) {
-                console.log('⚠️ [SCHEDULED-EMAIL] Configuração SMTP incompleta, serviço desabilitado');
-                return;
-            }
-
+            // Configuração SMTP robusta
             const smtpConfig = {
                 host: process.env.SMTP_HOST,
                 port: parseInt(process.env.SMTP_PORT) || 587,
-                secure: process.env.SMTP_SECURE === 'true', // false para 587, true para 465
-                connectionTimeout: this.connectionTimeout,
-                greetingTimeout: this.timeout,
-                socketTimeout: this.timeout,
+                secure: process.env.SMTP_SECURE === 'true',
                 auth: {
                     user: process.env.SMTP_USER,
                     pass: process.env.SMTP_PASS
                 },
-                // Configurações adicionais para ambiente Docker
-                tls: {
-                    rejectUnauthorized: false, // Para desenvolvimento
-                    ciphers: 'SSLv3'
-                },
-                debug: process.env.NODE_ENV === 'development',
-                logger: process.env.NODE_ENV === 'development'
+                // Timeouts para evitar travamento
+                connectionTimeout: 5000,   // 5s
+                greetingTimeout: 3000,     // 3s 
+                socketTimeout: 5000,       // 5s
+                pool: false               // Sem pool
             };
 
             console.log(`🔍 [SCHEDULED-EMAIL] Testando conexão com ${smtpConfig.host}:${smtpConfig.port}...`);
-            console.log(`🔒 [SCHEDULED-EMAIL] Secure: ${smtpConfig.secure}, Timeout: ${this.connectionTimeout}ms`);
+            console.log(`🔒 [SCHEDULED-EMAIL] Secure: ${smtpConfig.secure}, Timeout: 5000ms`);
+
+            // VERIFICAÇÃO: nodemailer está disponível?
+            if (typeof nodemailer === 'undefined') {
+                throw new Error('Módulo nodemailer não está disponível');
+            }
 
             this.transporter = nodemailer.createTransporter(smtpConfig);
-            
-            // Teste de conexão com timeout
-            await this.testConnection();
-            
+
+            // Teste com timeout manual para evitar travamento
+            await this.testConnectionWithTimeout(5000);
+
             this.isConfigured = true;
-            this.connectionTested = true;
-            
-            console.log(`✅ [SCHEDULED-EMAIL] SMTP configurado com sucesso: ${smtpConfig.host}:${smtpConfig.port}`);
+            console.log('✅ [SCHEDULED-EMAIL] SMTP configurado com sucesso');
 
         } catch (error) {
-            console.error('❌ [SCHEDULED-EMAIL] Erro na configuração SMTP:', error.message);
+            console.error(`❌ [SCHEDULED-EMAIL] Erro na configuração SMTP: ${error.message}`);
+            console.log('⚠️ [SCHEDULED-EMAIL] Continuando sem SMTP em produção...');
             
-            // Log adicional para debug
-            if (process.env.NODE_ENV === 'development') {
-                console.error('[SCHEDULED-EMAIL] Stack trace:', error.stack);
-            }
-            
-            // Não quebrar a aplicação por erro de SMTP
+            // NÃO quebrar a aplicação
             this.isConfigured = false;
-            this.connectionTested = false;
-            
-            // Se estiver em produção, apenas avisar mas continuar
-            if (process.env.NODE_ENV === 'production') {
-                console.log('⚠️ [SCHEDULED-EMAIL] Continuando sem SMTP em produção...');
-            }
+            this.transporter = null;
         }
     }
 
-    validateSMTPConfig() {
-        const required = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
-        const missing = required.filter(key => !process.env[key]);
-        
-        if (missing.length > 0) {
-            console.log(`⚠️ [SCHEDULED-EMAIL] Variáveis SMTP ausentes: ${missing.join(', ')}`);
-            return false;
-        }
-        
-        return true;
-    }
-
-    async testConnection() {
+    /**
+     * Teste de conexão com timeout manual
+     */
+    async testConnectionWithTimeout(timeoutMs = 5000) {
         return new Promise((resolve, reject) => {
-            // Timeout manual para evitar travamento
-            const timeoutId = setTimeout(() => {
-                reject(new Error(`Timeout de conexão SMTP após ${this.connectionTimeout}ms`));
-            }, this.connectionTimeout);
+            const timeout = setTimeout(() => {
+                reject(new Error(`Timeout de ${timeoutMs}ms na verificação SMTP`));
+            }, timeoutMs);
 
             this.transporter.verify((error, success) => {
-                clearTimeout(timeoutId);
+                clearTimeout(timeout);
                 
                 if (error) {
-                    console.error('❌ [SCHEDULED-EMAIL] Falha na verificação SMTP:', error.message);
-                    reject(error);
+                    reject(new Error(`Falha na verificação SMTP: ${error.message}`));
                 } else {
-                    console.log('✅ [SCHEDULED-EMAIL] Conexão SMTP verificada com sucesso');
                     resolve(success);
                 }
             });
         });
     }
 
-    async sendEmail(emailData, retryCount = 0) {
-        if (!this.isConfigured) {
-            throw new Error('SMTP não configurado');
-        }
+    /**
+     * Verifica se está configurado
+     */
+    get configured() {
+        return this.isConfigured && this.transporter !== null;
+    }
 
+    /**
+     * Método principal para envio de email (simplificado)
+     */
+    async enviarEmailBoletos(dadosEnvio) {
         try {
+            if (!this.configured) {
+                console.log('⚠️ [SCHEDULED-EMAIL] Serviço não configurado, ignorando envio');
+                return {
+                    success: false,
+                    error: 'Serviço de email não configurado',
+                    skipped: true
+                };
+            }
+
+            const { cliente, boletos, mensagem } = dadosEnvio;
+            
+            console.log(`📧 [SCHEDULED-EMAIL] Enviando para: ${cliente.nome} (${cliente.email})`);
+
             const mailOptions = {
                 from: process.env.SMTP_FROM || process.env.SMTP_USER,
-                to: emailData.to,
-                subject: emailData.subject,
-                html: emailData.html || emailData.text,
-                text: emailData.text
+                to: cliente.email,
+                subject: `${process.env.COMPANY_NAME || 'Sistema'} - Boletos Disponíveis`,
+                html: this.criarTemplateHTML(cliente, boletos, mensagem),
+                text: `Olá ${cliente.nome}, você possui ${boletos.length} boleto(s) disponível(is).`
             };
 
             const info = await this.transporter.sendMail(mailOptions);
-            
-            console.log('✅ [SCHEDULED-EMAIL] Email enviado:', {
-                to: emailData.to.substring(0, 5) + '***',
-                subject: emailData.subject,
-                messageId: info.messageId
-            });
+
+            this.statistics.totalSucessos++;
+            console.log(`✅ [SCHEDULED-EMAIL] Email enviado: ${info.messageId}`);
 
             return {
                 success: true,
                 messageId: info.messageId,
-                response: info.response
+                email: cliente.email
             };
 
         } catch (error) {
-            console.error(`❌ [SCHEDULED-EMAIL] Erro ao enviar email (tentativa ${retryCount + 1}):`, error.message);
-
-            // Retry logic
-            if (retryCount < this.maxRetries) {
-                console.log(`🔄 [SCHEDULED-EMAIL] Tentando reenvio em 2s...`);
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                return this.sendEmail(emailData, retryCount + 1);
-            }
-
-            throw error;
+            this.statistics.totalFalhas++;
+            console.error(`❌ [SCHEDULED-EMAIL] Erro ao enviar email:`, error.message);
+            
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
 
-    // Método para reinicializar SMTP se necessário
-    async reinitialize() {
-        console.log('🔄 [SCHEDULED-EMAIL] Reinicializando SMTP...');
-        this.isConfigured = false;
-        this.connectionTested = false;
-        this.transporter = null;
-        
-        await this.initSMTP();
+    /**
+     * Criar template HTML básico
+     */
+    criarTemplateHTML(cliente, boletos, mensagem) {
+        const boletosHtml = boletos.map(boleto => `
+            <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
+                <strong>Boleto:</strong> ${boleto.numero || 'N/A'}<br>
+                <strong>Vencimento:</strong> ${boleto.dataVencimento || 'N/A'}<br>
+                <strong>Valor:</strong> R$ ${(boleto.valor || 0).toFixed(2)}<br>
+                <strong>Linha Digitável:</strong><br>
+                <code style="font-family: monospace; background: #f5f5f5; padding: 5px;">
+                    ${boleto.linhaDigitavel || 'N/A'}
+                </code>
+            </div>
+        `).join('');
+
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Boletos - ${process.env.COMPANY_NAME || 'Sistema'}</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #007bff;">Olá, ${cliente.nome}!</h2>
+            <p>${mensagem || 'Você possui boletos disponíveis:'}</p>
+            ${boletosHtml}
+            <hr>
+            <p><small>
+                Enviado automaticamente por ${process.env.COMPANY_NAME || 'Sistema'}<br>
+                Data: ${new Date().toLocaleString('pt-BR')}
+            </small></p>
+        </body>
+        </html>
+        `;
     }
 
-    // Health check
+    /**
+     * Validação básica de email
+     */
+    validarEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
+
+    /**
+     * Health check do serviço
+     */
     async healthCheck() {
         return {
-            configured: this.isConfigured,
-            tested: this.connectionTested,
-            host: process.env.SMTP_HOST || 'não configurado',
-            port: process.env.SMTP_PORT || 'não configurado',
-            secure: process.env.SMTP_SECURE === 'true'
+            configured: this.configured,
+            statistics: this.statistics,
+            host: process.env.SMTP_HOST || 'não configurado'
         };
+    }
+
+    /**
+     * Recarregar configuração
+     */
+    async recarregarConfiguracao() {
+        console.log('🔄 [SCHEDULED-EMAIL] Recarregando configuração...');
+        this.isConfigured = false;
+        this.transporter = null;
+        await this.initializeAsync();
+        return this.configured;
     }
 }
 
+// Export singleton
 module.exports = new ScheduledEmailService();
