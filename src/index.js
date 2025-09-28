@@ -29,7 +29,7 @@ class WhatsAppBot {
     constructor() {
         this.app = express();
         this.server = null;
-        this.port = process.env.PORT || 5000;
+        this.port = process.env.PORT || 3000;
         this.isShuttingDown = false;
     }
 
@@ -63,8 +63,7 @@ class WhatsAppBot {
             await this.setupEvolutionWebhook();
 
             // Inicializar automação de mensagens programadas
-            if(process.env.SCHEDULED_STATUS)
-                await this.initializeScheduledMessages();
+            await this.initializeScheduledMessages();
 
             // Inicia servidor
             await this.startServer();
