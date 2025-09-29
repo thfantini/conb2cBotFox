@@ -128,10 +128,17 @@ async function processarMensagem(messageData) {
             }
         } else {
             console.log('🔍 [DEBUG] Processando estado atual:', conversaAtual.estado);
+
+            logger.info('processarEstadoAtual:');
+            logger.info('- conversa: ', conversaAtual);
+            logger.info('- estado: ', conversaAtual.estado);
+            logger.info('- messageText: ', messageText);
+
+
             await processarEstadoAtual(conversaAtual, messageText);
         }
 
-        console.log('✅ [DEBUG] Processamento concluído com sucesso');
+        console.log('✅ [DEBUG] Processamento concluído com sucesso!');
         return { success: true, data: 'Mensagem processada com sucesso' };
 
     } catch (error) {
