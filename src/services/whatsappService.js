@@ -42,6 +42,10 @@ async function processarMensagem(messageData) {
         const messageText = message.conversation || message.extendedTextMessage?.text || '';
         const messageId = key.id;
 
+        logger.info('phoneNumber', phoneNumber);
+        logger.info('messageText', messageText);
+        logger.info('messageId', messageId);
+
         // Marca mensagem como lida
         await evolutionAPI.markMessageAsRead(messageId, key.remoteJid);
 
