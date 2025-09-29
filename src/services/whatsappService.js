@@ -211,19 +211,26 @@ async function iniciarNovaConversa(phoneNumber, messageId, messageText) {
 async function processarEstadoAtual(conversa, messageText) {
 
     console.log('processarEstadoAtual:');
-    console.log('- conversa', conversa);
-    console.log('- messageText', messageText);
+    console.log('- conversa: ', conversa);
+    console.log('- estado: ', conversa.estado);
+    console.log('- messageText: ', messageText);
 
     switch (conversa.estado) {
         case ESTADOS.AGUARDANDO_CNPJ:
+            
+            console.log('ESTADOS.AGUARDANDO_CNPJ: ', messageText);
             await processarCNPJ(conversa, messageText);
             break;
             
         case ESTADOS.MENU_PRINCIPAL:
+            
+            console.log('ESTADOS.MENU_PRINCIPAL: ', messageText);
             await processarOpcaoMenu(conversa, messageText);
             break;
             
         default:
+            
+            console.log('enviarMensagemNaoCompreendida: ', messageText);
             await enviarMensagemNaoCompreendida(conversa.phoneNumber);
             break;
     }
