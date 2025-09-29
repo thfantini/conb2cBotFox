@@ -128,14 +128,15 @@ class WhatsAppBot {
 
         // Body parser
         this.app.use(bodyParser.json({ 
-            limit: '10mb',
+            limit: '5mb',
             verify: (req, res, buf) => {
                 req.rawBody = buf;
             }
         }));
+
         this.app.use(bodyParser.urlencoded({ 
             extended: true, 
-            limit: '10mb' 
+            limit: '5mb' 
         }));
 
         // Correlation ID

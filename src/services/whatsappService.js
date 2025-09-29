@@ -36,54 +36,112 @@ const MENU_OPCOES = [
  * @param {Object} messageData - Dados da mensagem do webhook
  * @returns {Promise} Resultado do processamento
  */
+// async function processarMensagem(messageData) {
+//     try {
+//         const { key, message, messageTimestamp } = messageData;
+//         const phoneNumber = key.remoteJid.replace('@s.whatsapp.net', '');
+//         const messageText = message.conversation || message.extendedTextMessage?.text || '';
+//         const messageId = key.id;
+
+//         logger.info('processarMensagem:');
+//         logger.info('- phoneNumber', phoneNumber);
+//         logger.info('- messageText', messageText);
+//         logger.info('- messageId', messageId);
+
+//         // Marca mensagem como lida
+//         await evolutionAPI.markMessageAsRead(messageId, key.remoteJid);
+
+//         // Ignora mensagens vazias ou de status
+//         if (!messageText.trim() || key.fromMe) {
+//             return { success: true, data: 'Mensagem ignorada' };
+//         }
+
+//         // Registra mensagem na conversa
+//         await adicionarMensagemConversa(phoneNumber, messageId, 'cliente', messageText);
+
+//         // Verifica se é início de nova conversa ou continuação
+//         let conversaAtual = conversasAtivas.get(phoneNumber);
+        
+//         if (!conversaAtual) {
+            
+//             // Nova conversa - verifica se cliente existe por celular
+//             conversaAtual = await iniciarNovaConversa(phoneNumber, messageId, messageText);
+            
+//             // Se a primeira mensagem já é o CNPJ, processar
+//             if (conversaAtual.estado === ESTADOS.AGUARDANDO_CNPJ && messageText.replace(/\D/g, '').length === 14) {
+//                 await processarCNPJ(conversaAtual, messageText);
+//             }
+
+//         } else {
+//             // Conversa existente - processa baseado no estado atual
+//             await processarEstadoAtual(conversaAtual, messageText);
+//         }
+
+//         return { success: true, data: 'Mensagem processada com sucesso' };
+
+//     } catch (error) {
+//         console.error('Erro ao processar mensagem:', error);
+//         return { success: false, error: error.message };
+//     }
+// }
+
 async function processarMensagem(messageData) {
     try {
+        console.log('🔍 [DEBUG] Iniciando processamento da mensagem');
+        console.log('🔍 [DEBUG] messageData:', JSON.stringify(messageData, null, 2));
+        
         const { key, message, messageTimestamp } = messageData;
         const phoneNumber = key.remoteJid.replace('@s.whatsapp.net', '');
         const messageText = message.conversation || message.extendedTextMessage?.text || '';
         const messageId = key.id;
 
-        logger.info('processarMensagem:');
-        logger.info('- phoneNumber', phoneNumber);
-        logger.info('- messageText', messageText);
-        logger.info('- messageId', messageId);
+        console.log('🔍 [DEBUG] phoneNumber:', phoneNumber);
+        console.log('🔍 [DEBUG] messageText:', messageText);
+        console.log('🔍 [DEBUG] messageId:', messageId);
 
         // Marca mensagem como lida
+        console.log('🔍 [DEBUG] Marcando como lida...');
         await evolutionAPI.markMessageAsRead(messageId, key.remoteJid);
+        console.log('✅ [DEBUG] Marcada como lida');
 
-        // Ignora mensagens vazias ou de status
         if (!messageText.trim() || key.fromMe) {
+            console.log('⚠️ [DEBUG] Mensagem ignorada (vazia ou do bot)');
             return { success: true, data: 'Mensagem ignorada' };
         }
 
-        // Registra mensagem na conversa
+        console.log('🔍 [DEBUG] Adicionando mensagem à conversa...');
         await adicionarMensagemConversa(phoneNumber, messageId, 'cliente', messageText);
+        console.log('✅ [DEBUG] Mensagem adicionada');
 
-        // Verifica se é início de nova conversa ou continuação
         let conversaAtual = conversasAtivas.get(phoneNumber);
+        console.log('🔍 [DEBUG] Conversa atual:', conversaAtual ? 'EXISTE' : 'NÃO EXISTE');
         
         if (!conversaAtual) {
-            
-            // Nova conversa - verifica se cliente existe por celular
+            console.log('🔍 [DEBUG] Iniciando nova conversa...');
             conversaAtual = await iniciarNovaConversa(phoneNumber, messageId, messageText);
+            console.log('✅ [DEBUG] Nova conversa iniciada. Estado:', conversaAtual.estado);
             
-            // Se a primeira mensagem já é o CNPJ, processar
+            // Se primeira mensagem é CNPJ, processar
             if (conversaAtual.estado === ESTADOS.AGUARDANDO_CNPJ && messageText.replace(/\D/g, '').length === 14) {
+                console.log('🔍 [DEBUG] Detectado CNPJ na primeira mensagem, processando...');
                 await processarCNPJ(conversaAtual, messageText);
             }
-
         } else {
-            // Conversa existente - processa baseado no estado atual
+            console.log('🔍 [DEBUG] Processando estado atual:', conversaAtual.estado);
             await processarEstadoAtual(conversaAtual, messageText);
         }
 
+        console.log('✅ [DEBUG] Processamento concluído com sucesso');
         return { success: true, data: 'Mensagem processada com sucesso' };
 
     } catch (error) {
-        console.error('Erro ao processar mensagem:', error);
+        console.error('❌ [DEBUG] Erro ao processar mensagem:', error);
+        console.error('❌ [DEBUG] Stack:', error.stack);
         return { success: false, error: error.message };
     }
 }
+
+
 
 /**
  * Inicia nova conversa verificando cliente por celular
