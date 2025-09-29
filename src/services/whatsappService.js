@@ -1,4 +1,4 @@
-const logger = require('./utils/logger');
+const logger = require('../utils/logger');
 const evolutionAPI = require('../config/evolution');
 const database = require('../config/database');
 const moment = require('moment');
@@ -94,6 +94,11 @@ async function processarMensagem(messageData) {
  */
 async function iniciarNovaConversa(phoneNumber, messageId, messageText) {
     const numeroFormatado = evolutionAPI.formatPhoneNumber(phoneNumber);
+
+    logger.info('iniciarNovaConversa:');
+    logger.info('- phoneNumber', phoneNumber);
+    logger.info('- messageId', messageId);
+    logger.info('- messageText', messageText);
     
     // Verifica se cliente existe por celular
     const clienteResult = await database.getClienteByCelular(numeroFormatado);
@@ -139,6 +144,11 @@ async function iniciarNovaConversa(phoneNumber, messageId, messageText) {
  * @param {string} messageText - Texto da mensagem recebida
  */
 async function processarEstadoAtual(conversa, messageText) {
+
+    logger.info('processarEstadoAtual:');
+    logger.info('- conversa', conversa);
+    logger.info('- messageText', messageText);
+
     switch (conversa.estado) {
         case ESTADOS.AGUARDANDO_CNPJ:
             await processarCNPJ(conversa, messageText);
@@ -161,6 +171,10 @@ async function processarEstadoAtual(conversa, messageText) {
  */
 async function processarCNPJ(conversa, cnpj) {
     const cnpjLimpo = cnpj.replace(/\D/g, '');
+
+    logger.info('processarCNPJ:');
+    logger.info('- conversa', conversa);
+    logger.info('- cnpj', cnpj);
     
     if (cnpjLimpo.length !== 14) {
         await enviarMensagem(conversa.phoneNumber, 
@@ -204,7 +218,11 @@ async function processarCNPJ(conversa, cnpj) {
  */
 async function processarOpcaoMenu(conversa, opcao) {
     const opcaoLimpa = opcao.trim();
-    
+
+    logger.info('processarOpcaoMenu:');
+    logger.info('- conversa', conversa);
+    logger.info('- opcao', opcao);
+
     switch (opcaoLimpa) {
         case '1':
         case '1️⃣':
@@ -243,6 +261,9 @@ async function processarOpcaoMenu(conversa, opcao) {
  */
 async function processarBoletos(conversa) {
     const boletosResult = await database.getBoletosByCNPJ(conversa.dados.cnpj);
+
+    logger.info('processarBoletos:');
+    logger.info('- conversa', conversa);
     
     if (boletosResult.success && boletosResult.data.length > 0) {
         await enviarMensagem(conversa.phoneNumber, 
@@ -279,6 +300,10 @@ async function processarBoletos(conversa) {
  * @param {Object} conversa - Dados da conversa
  */
 async function processarNotasFiscais(conversa) {
+    
+    logger.info('processarNotasFiscais:');
+    logger.info('- conversa', conversa);
+    
     // Implementar busca de notas fiscais quando a estrutura estiver definida
     await enviarMensagem(conversa.phoneNumber, 
         '📋 *Notas Fiscais*\n\n' +
@@ -294,6 +319,10 @@ async function processarNotasFiscais(conversa) {
  * @param {Object} conversa - Dados da conversa
  */
 async function processarCertificados(conversa) {
+
+    logger.info('processarCertificados:');
+    logger.info('- conversa', conversa);
+
     // Implementar busca de certificados quando a estrutura estiver definida
     await enviarMensagem(conversa.phoneNumber, 
         '🏆 *Certificados*\n\n' +
@@ -309,6 +338,10 @@ async function processarCertificados(conversa) {
  * @param {Object} conversa - Dados da conversa
  */
 async function processarAtendimento(conversa) {
+    
+    logger.info('processarAtendimento:');
+    logger.info('- conversa', conversa);
+    
     await enviarMensagem(conversa.phoneNumber,
         '👨‍💼 *Transferindo para Atendimento*\n\n' +
         'Sua solicitação será direcionada para um de nossos atendentes.\n' +
@@ -327,6 +360,11 @@ async function processarAtendimento(conversa) {
  * @param {string} nomeCliente - Nome do cliente
  */
 async function enviarBoasVindas(phoneNumber, nomeCliente) {
+
+    logger.info('enviarBoasVindas:');
+    logger.info('- phoneNumber', phoneNumber);
+    logger.info('- nomeCliente', nomeCliente);
+
     const mensagem = 
         `👋 Olá, ${nomeCliente}!\n\n` +
         `Bem-vindo(a) ao atendimento da *${process.env.COMPANY_NAME}*.\n\n` +
@@ -341,6 +379,10 @@ async function enviarBoasVindas(phoneNumber, nomeCliente) {
  * @param {string} phoneNumber - Número do telefone
  */
 async function enviarSolicitacaoCNPJ(phoneNumber) {
+    
+    logger.info('enviarSolicitacaoCNPJ:');
+    logger.info('- phoneNumber', phoneNumber);
+    
     const mensagem = 
         `👋 Olá! Bem-vindo(a) ao atendimento da *${process.env.COMPANY_NAME}*.\n\n` +
         `Para continuar, por favor me informe o *CNPJ* da sua empresa:`;
@@ -354,6 +396,10 @@ async function enviarSolicitacaoCNPJ(phoneNumber) {
  * @param {string} phoneNumber - Número do telefone
  */
 async function enviarMenuPrincipal(phoneNumber) {
+
+    logger.info('enviarMenuPrincipal:');
+    logger.info('- phoneNumber', phoneNumber);
+
     const mensagem = 
         `📋 *Menu de Opções*\n\n` +
         `Escolha uma das opções abaixo digitando o número correspondente:\n\n` +
@@ -368,6 +414,10 @@ async function enviarMenuPrincipal(phoneNumber) {
  * @param {string} phoneNumber - Número do telefone
  */
 async function enviarMenuVoltar(phoneNumber) {
+
+    logger.info('enviarMenuVoltar:');
+    logger.info('- phoneNumber', phoneNumber);
+
     const mensagem = 
         `\n🔄 *Mais alguma coisa?*\n\n` +
         `Digite *MENU* para voltar ao menu principal\n` +
@@ -382,6 +432,10 @@ async function enviarMenuVoltar(phoneNumber) {
  * @param {string} phoneNumber - Número do telefone
  */
 async function enviarOpcaoAtendente(phoneNumber) {
+    
+    logger.info('enviarOpcaoAtendente:');
+    logger.info('- phoneNumber', phoneNumber);
+
     const mensagem = 
         `👨‍💼 Digite *ATENDENTE* se deseja falar com nossa equipe.`;
     
@@ -394,6 +448,10 @@ async function enviarOpcaoAtendente(phoneNumber) {
  * @param {string} phoneNumber - Número do telefone
  */
 async function enviarMensagemNaoCompreendida(phoneNumber) {
+
+    logger.info('enviarMensagemNaoCompreendida:');
+    logger.info('- phoneNumber', phoneNumber);
+
     const mensagem = 
         `❓ Desculpe, não compreendi sua mensagem.\n\n` +
         `Digite *MENU* para ver as opções disponíveis.`;
@@ -453,6 +511,10 @@ async function adicionarMensagemConversa(phoneNumber, messageId, tipo, mensagem)
  * @param {Object} conversa - Dados da conversa
  */
 async function registrarAtendimentoInicial(conversa) {
+
+    logger.info('registrarAtendimentoInicial:');
+    logger.info('- conversa', conversa);
+
     const atendimentoData = {
         messageId: conversa.messageId,
         cliente: conversa.dados.cliente,
@@ -468,6 +530,10 @@ async function registrarAtendimentoInicial(conversa) {
  * @param {Object} conversa - Dados da conversa
  */
 async function transferirParaAtendente(conversa) {
+
+    logger.info('transferirParaAtendente:');
+    logger.info('- conversa', conversa);
+
     // Implementar integração com sistema de atendimento
     console.log(`Transferindo conversa ${conversa.messageId} para atendimento humano`);
     
