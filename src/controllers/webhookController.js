@@ -15,9 +15,9 @@ class WebhookController {
             const webhookData = req.body;
             
             // Log do webhook recebido (apenas em desenvolvimento)
-            if (process.env.NODE_ENV === 'development') {
-                console.log('📨 Webhook recebido:', JSON.stringify(webhookData, null, 2));
-            }
+            // if (process.env.NODE_ENV === 'development') {}
+            console.log('receberMensagem > Webhook recebido:', JSON.stringify(webhookData, null, 2));
+            
 
             // Valida estrutura básica do webhook
             if (!webhookData || !webhookData.data) {
@@ -30,23 +30,26 @@ class WebhookController {
 
             // Verifica se é evento de mensagem
             if (webhookData.event !== 'messages.upsert') {
-                console.log(`ℹ️ Evento ignorado: ${webhookData.event}`);
+                console.log(`Evento ignorado: ${webhookData.event}`);
                 return res.status(200).json({
                     success: true,
                     message: 'Evento não processado'
                 });
             }
 
-            // Processa cada mensagem do webhook
-            // const mensagens = webhookData.data;
+            // Normaliza dados para array (Evolution API pode enviar objeto único ou array)
             let mensagens = webhookData.data;
-
-            // Se data for um objeto único, converte para array
+            console.log('receberMensagem > mensagens:', mensagens);
+            
+            // Se não for array, converte para array com um elemento
             if (!Array.isArray(mensagens)) {
                 mensagens = [mensagens];
+                console.log('Convertendo objeto único para array de mensagens');
             }
-
+            
             const resultados = [];
+            console.log(`receberMensagem > Total de mensagens a processar: ${mensagens.length}`);
+
             for (const mensagem of mensagens) {
                 try {
                     // Valida mensagem individual
@@ -63,44 +66,45 @@ class WebhookController {
                     }
 
                     // Processa mensagem válida
-                    console.log(`📱 Processando mensagem de: ${mensagem.key.remoteJid}`);
-                    console.log('processarMensagem: ', mensagem);
+                    console.log(`Processando mensagem de: ${mensagem.key.remoteJid}`);
                     const resultado = await whatsappService.processarMensagem(mensagem);
                     
                     resultados.push({
                         messageId: mensagem.key.id,
                         status: resultado.success ? 'processada' : 'erro',
-                        resultado: resultado
+                        dados: resultado.data || resultado.error
                     });
 
-                    // Log do resultado
-                    if (resultado.success) {
-                        console.log(`✅ Mensagem processada: ${mensagem.key.id}`);
-                    } else {
-                        console.error(`❌ Erro ao processar mensagem: ${resultado.error}`);
-                    }
+                    console.log(`✅ Mensagem processada: ${mensagem.key.id}`);
 
                 } catch (error) {
-                    console.error('❌ Erro ao processar mensagem individual:', error);
+                    console.error(`❌ Erro ao processar mensagem individual:`, error);
                     resultados.push({
                         messageId: mensagem.key?.id || 'unknown',
                         status: 'erro',
-                        error: error.message
+                        erro: error.message
                     });
                 }
             }
 
-            // Resposta para Evolution API
+            // Resposta de sucesso
             return res.status(200).json({
                 success: true,
                 message: 'Webhook processado',
-                resultados: resultados,
-                total: mensagens.length,
-                processadas: resultados.filter(r => r.status === 'processada').length
+                processadas: resultados.filter(r => r.status === 'processada').length,
+                ignoradas: resultados.filter(r => r.status === 'ignorada').length,
+                erros: resultados.filter(r => r.status === 'erro').length,
+                resultados: resultados
             });
 
         } catch (error) {
-            console.error('❌ Erro no webhook controller:', error);
+            console.error('❌ Erro no controller de webhook:', error);
+            
+            // Log detalhado em desenvolvimento
+            if (process.env.NODE_ENV === 'development') {
+                console.error('Stack trace:', error.stack);
+            }
+
             return res.status(500).json({
                 success: false,
                 error: 'Erro interno do servidor',
@@ -165,25 +169,15 @@ class WebhookController {
 
             // Ignora mensagens muito antigas (mais de 5 minutos)
             if (messageTimestamp) {
-                const agora = Date.now() / 1000;
-                const tempoMensagem = parseInt(messageTimestamp);
-                const diferenca = agora - tempoMensagem;
+                const agora = Math.floor(Date.now() / 1000);
+                const idade = agora - messageTimestamp;
                 
-                if (diferenca > 300) { // 5 minutos
+                if (idade > 300) { // 5 minutos
                     return {
                         valida: false,
                         motivo: 'Mensagem muito antiga'
                     };
                 }
-            }
-
-            // Verifica se o número é válido (formato brasileiro)
-            const numeroLimpo = key.remoteJid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
-            if (numeroLimpo.length < 10 || numeroLimpo.length > 13) {
-                return {
-                    valida: false,
-                    motivo: 'Número de telefone inválido'
-                };
             }
 
             return {
@@ -201,7 +195,7 @@ class WebhookController {
     }
 
     /**
-     * Endpoint para verificar status do webhook
+     * Verifica status do webhook
      * @param {Object} req - Request object
      * @param {Object} res - Response object
      */
@@ -209,11 +203,12 @@ class WebhookController {
         try {
             return res.status(200).json({
                 success: true,
-                message: 'Webhook ativo',
+                message: 'Webhook ativo e funcionando',
                 timestamp: new Date().toISOString(),
-                environment: process.env.NODE_ENV || 'development',
-                version: require('../../package.json').version
+                uptime: process.uptime(),
+                environment: process.env.NODE_ENV || 'development'
             });
+
         } catch (error) {
             console.error('Erro ao verificar status:', error);
             return res.status(500).json({
@@ -224,7 +219,7 @@ class WebhookController {
     }
 
     /**
-     * Endpoint para validar configuração do webhook
+     * Valida configuração do webhook
      * @param {Object} req - Request object
      * @param {Object} res - Response object
      */
