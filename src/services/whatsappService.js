@@ -57,8 +57,15 @@ async function processarMensagem(messageData) {
         let conversaAtual = conversasAtivas.get(phoneNumber);
         
         if (!conversaAtual) {
+            
             // Nova conversa - verifica se cliente existe por celular
             conversaAtual = await iniciarNovaConversa(phoneNumber, messageId, messageText);
+            
+            // Se a primeira mensagem já é o CNPJ, processar
+            if (conversaAtual.estado === ESTADOS.AGUARDANDO_CNPJ && messageText.replace(/\D/g, '').length === 14) {
+                await processarCNPJ(conversaAtual, messageText);
+            }
+
         } else {
             // Conversa existente - processa baseado no estado atual
             await processarEstadoAtual(conversaAtual, messageText);
@@ -103,6 +110,7 @@ async function iniciarNovaConversa(phoneNumber, messageId, messageText) {
         await enviarMenuPrincipal(phoneNumber);
 
     } else {
+        
         // Cliente não encontrado - solicita CNPJ
         conversaAtual = {
             estado: ESTADOS.AGUARDANDO_CNPJ,
