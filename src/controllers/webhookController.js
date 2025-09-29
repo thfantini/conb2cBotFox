@@ -64,6 +64,7 @@ class WebhookController {
 
                     // Processa mensagem válida
                     console.log(`📱 Processando mensagem de: ${mensagem.key.remoteJid}`);
+                    console.log('processarMensagem: ', mensagem);
                     const resultado = await whatsappService.processarMensagem(mensagem);
                     
                     resultados.push({
