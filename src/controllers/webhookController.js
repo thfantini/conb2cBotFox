@@ -38,9 +38,15 @@ class WebhookController {
             }
 
             // Processa cada mensagem do webhook
-            const mensagens = webhookData.data;
-            const resultados = [];
+            // const mensagens = webhookData.data;
+            let mensagens = webhookData.data;
 
+            // Se data for um objeto único, converte para array
+            if (!Array.isArray(mensagens)) {
+                mensagens = [mensagens];
+            }
+
+            const resultados = [];
             for (const mensagem of mensagens) {
                 try {
                     // Valida mensagem individual
