@@ -1,3 +1,4 @@
+const logger = require('./utils/logger');
 const evolutionAPI = require('../config/evolution');
 const database = require('../config/database');
 const moment = require('moment');
@@ -42,9 +43,10 @@ async function processarMensagem(messageData) {
         const messageText = message.conversation || message.extendedTextMessage?.text || '';
         const messageId = key.id;
 
-        logger.info('phoneNumber', phoneNumber);
-        logger.info('messageText', messageText);
-        logger.info('messageId', messageId);
+        logger.info('processarMensagem:');
+        logger.info('- phoneNumber', phoneNumber);
+        logger.info('- messageText', messageText);
+        logger.info('- messageId', messageId);
 
         // Marca mensagem como lida
         await evolutionAPI.markMessageAsRead(messageId, key.remoteJid);
@@ -406,6 +408,11 @@ async function enviarMensagemNaoCompreendida(phoneNumber) {
  * @param {string} message - Mensagem a ser enviada
  */
 async function enviarMensagem(phoneNumber, message) {
+    
+    logger.info('enviarMensagem:');
+    logger.info('- phoneNumber', phoneNumber);
+    logger.info('- message', message);
+    
     return await evolutionAPI.sendTextMessage(phoneNumber, message);
 }
 
@@ -418,6 +425,12 @@ async function enviarMensagem(phoneNumber, message) {
  */
 async function adicionarMensagemConversa(phoneNumber, messageId, tipo, mensagem) {
     const conversa = conversasAtivas.get(phoneNumber);
+
+    logger.info('adicionarMensagemConversa:');
+    logger.info('- phoneNumber', phoneNumber);
+    logger.info('- messageId', messageId);
+    logger.info('- tipo', tipo);
+    logger.info('- messageText', mensagem);
     
     if (conversa) {
         const novaMensagem = {
