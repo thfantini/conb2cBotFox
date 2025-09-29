@@ -92,6 +92,20 @@ class WhatsAppBot {
     setupMiddlewares() {
         logger.debug('⚙️ Configurando middlewares...', { context: 'setup' });
 
+        // Middleware de debug - captura TODAS as requisições
+        this.app.use((req, res, next) => {
+            const timestamp = new Date().toISOString();
+            console.log('='.repeat(80));
+            console.log(`[${timestamp}] REQUISIÇÃO RECEBIDA`);
+            console.log(`Método: ${req.method}`);
+            console.log(`URL: ${req.url}`);
+            console.log(`IP: ${req.ip || req.connection.remoteAddress}`);
+            console.log(`Headers:`, JSON.stringify(req.headers, null, 2));
+            console.log(`Body:`, JSON.stringify(req.body, null, 2));
+            console.log('='.repeat(80));
+            next();
+        });
+
         // CORS
         this.app.use(cors({
             origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
