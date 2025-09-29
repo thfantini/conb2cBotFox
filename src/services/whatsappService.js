@@ -129,10 +129,10 @@ async function processarMensagem(messageData) {
         } else {
             console.log('🔍 [DEBUG] Processando estado atual:', conversaAtual.estado);
 
-            logger.info('processarEstadoAtual:');
-            logger.info('- conversa: ', conversaAtual);
-            logger.info('- estado: ', conversaAtual.estado);
-            logger.info('- messageText: ', messageText);
+            console.log('processarEstadoAtual:');
+            console.log('- conversa: ', conversaAtual);
+            console.log('- estado: ', conversaAtual.estado);
+            console.log('- messageText: ', messageText);
 
 
             await processarEstadoAtual(conversaAtual, messageText);
@@ -210,9 +210,9 @@ async function iniciarNovaConversa(phoneNumber, messageId, messageText) {
  */
 async function processarEstadoAtual(conversa, messageText) {
 
-    logger.info('processarEstadoAtual:');
-    logger.info('- conversa', conversa);
-    logger.info('- messageText', messageText);
+    console.log('processarEstadoAtual:');
+    console.log('- conversa', conversa);
+    console.log('- messageText', messageText);
 
     switch (conversa.estado) {
         case ESTADOS.AGUARDANDO_CNPJ:
@@ -252,6 +252,7 @@ async function processarCNPJ(conversa, cnpj) {
     const clienteResult = await database.getClienteByCNPJ(cnpjFormatado);
 
     if (clienteResult.success && clienteResult.data.length > 0) {
+
         // Cliente encontrado
         const clienteData = clienteResult.data[0];
         conversa.dados = clienteData;
@@ -266,11 +267,13 @@ async function processarCNPJ(conversa, cnpj) {
         await enviarMenuPrincipal(conversa.phoneNumber);
         
     } else {
+
         // Cliente não encontrado
         await enviarMensagem(conversa.phoneNumber, 
             '❌ CNPJ não encontrado em nossa base de dados.\n\n' +
             'Para mais informações, você pode falar com um de nossos atendentes.'
         );
+
         await enviarOpcaoAtendente(conversa.phoneNumber);
         conversa.estado = ESTADOS.FINALIZADA;
     }
