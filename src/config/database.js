@@ -65,15 +65,15 @@ async function executeQuery(query, params = []) {
     const logQuery = formatQueryForLog(query, params);
     try {
         const [rows] = await pool.execute(query, params);
-        logger.info('MySQL:', logQuery);
+        console.log('MySQL:', logQuery);
         return {
             success: true,
             data: rows,
             error: null
         };
     } catch (error) {
-        logger.error('❌ Erro ao conectar MySQL. Query:', logQuery); 
-        logger.error('❌ Erro ao conectar MySQL:', error.message);
+        console.log('❌ Erro ao conectar MySQL. Query:', logQuery); 
+        console.log('❌ Erro ao conectar MySQL:', error.message);
         return {
             success: false,
             data: null,
