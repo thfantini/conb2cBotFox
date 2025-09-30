@@ -60,6 +60,10 @@ async function getClienteByCNPJ(cnpj) {
         WHERE cnpj = ?
         LIMIT 1
     `;
+
+    console.log('getClienteByCNPJ: ', cnpj);
+    console.log('query: ', query);
+
     return await executeQuery(query, [cnpj]);
 }
 
@@ -75,6 +79,10 @@ async function getClienteByCelular(celular) {
         WHERE celular = ?
         LIMIT 1
     `;
+
+    console.log('getClienteByCelular: ', celular);
+    console.log('query: ', query);
+
     return await executeQuery(query, [celular]);
 }
 
@@ -92,6 +100,10 @@ async function getBoletosByCNPJ(cnpj) {
         -- AND dataVencimento >= CURDATE()
         ORDER BY dataVencimento ASC
     `;
+    
+    console.log('getBoletosByCNPJ: ', cnpj);
+    console.log('query: ', query);
+    
     return await executeQuery(query, [cnpj]);
 }
 
@@ -106,6 +118,9 @@ async function registrarAtendimento(atendimentoData) {
         INSERT INTO whapi_atendimento (messageId, cliente, cnpj, data, conversa)
         VALUES (?, ?, ?, NOW(), ?)
     `;
+    
+    console.log('registrarAtendimento: ', atendimentoData);
+    console.log('query: ', query);
     return await executeQuery(query, [messageId, cliente, cnpj, JSON.stringify(conversa)]);
 }
 
@@ -121,6 +136,11 @@ async function atualizarConversa(messageId, conversa) {
         SET conversa = ?
         WHERE messageId = ?
     `;
+    
+    console.log('atualizarConversa: ', messageId);
+    console.log('conversa: ', conversa);
+    console.log('query: ', query);
+    
     return await executeQuery(query, [JSON.stringify(conversa), messageId]);
 }
 
@@ -136,6 +156,10 @@ async function getAtendimentoByMessageId(messageId) {
         WHERE messageId = ?
         LIMIT 1
     `;
+
+    console.log('getAtendimentoByMessageId: ', messageId);
+    console.log('query: ', query);
+
     return await executeQuery(query, [messageId]);
 }
 

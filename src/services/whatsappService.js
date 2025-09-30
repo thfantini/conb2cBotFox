@@ -259,6 +259,8 @@ async function processarCNPJ(conversa, cnpj) {
     const cnpjFormatado = formatarCNPJ(cnpjLimpo);
     const clienteResult = await database.getClienteByCNPJ(cnpjFormatado);
 
+    console.log('- clienteResult', clienteResult);
+
     if (clienteResult.success && clienteResult.data.length > 0) {
 
         // Cliente encontrado
