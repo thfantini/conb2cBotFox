@@ -18,6 +18,39 @@ const dbConfig = {
 };
 
 /**
+ * Função auxiliar para substituir o placeholder '?' pelo valor
+ * @param {string} query - Query SQL
+ * @returns {string} dados para consulta
+ */
+function formatQueryForLog(query, params) {
+    if (!params || params.length === 0) {
+        return query;
+    }
+
+    let paramIndex = 0;
+    const formattedQuery = query.replace(/\?/g, (match) => {
+        let value = params[paramIndex];
+
+        // String
+        if (typeof value === 'string') {
+            value = `'${value}'`;
+        }
+
+        // null ou undefined, usa NULL no SQL.
+        else if (value === null || typeof value === 'undefined') {
+            value = 'NULL';
+        }
+
+        // numero/booleano
+        paramIndex++;
+        return value;
+    });
+
+    return formattedQuery;
+}
+
+
+/**
  * Pool de conexões
  */
 const pool = mysql.createPool(dbConfig);
@@ -29,16 +62,17 @@ const pool = mysql.createPool(dbConfig);
  * @returns {Promise} Resultado da query
  */
 async function executeQuery(query, params = []) {
+    const logQuery = formatQueryForLog(query, params);
     try {
         const [rows] = await pool.execute(query, params);
-        logger.info('MySQL:', query);
+        logger.info('MySQL:', logQuery);
         return {
             success: true,
             data: rows,
             error: null
         };
     } catch (error) {
-        //console.error('Erro na execução da query:', error);
+        logger.error('❌ Erro ao conectar MySQL. Query:', logQuery); 
         logger.error('❌ Erro ao conectar MySQL:', error.message);
         return {
             success: false,
