@@ -101,7 +101,8 @@ async function executeQuery(query, params = [], retries = 3) {
     
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-            const [rows] = await pool.execute(query, params);
+            //const [rows] = await pool.execute(query, params);
+            const [rows] = await pool.query(query, params);
             console.log('MySQL:', logQuery);
             return {
                 success: true,
