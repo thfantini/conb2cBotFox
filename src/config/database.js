@@ -14,7 +14,14 @@ const dbConfig = {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    charset: 'utf8mb4'
+    charset: 'utf8mb4',
+    enableKeepAlive: true,          // Mantém conexões ativas
+    keepAliveInitialDelay: 10000,   // 10 segundos
+    connectTimeout: 60000,          // 60 segundos
+    acquireTimeout: 60000,          // 60 segundos
+    timeout: 60000,                 // 60 segundos
+    maxIdle: 10,                    // Conexões ociosas
+    idleTimeout: 60000              // Timeout para conexões ociosas
 };
 
 /**
@@ -61,24 +68,70 @@ const pool = mysql.createPool(dbConfig);
  * @param {Array} params - Parâmetros da query
  * @returns {Promise} Resultado da query
  */
-async function executeQuery(query, params = []) {
+// async function executeQuery(query, params = []) {
+//     const logQuery = formatQueryForLog(query, params);
+//     try {
+//         const [rows] = await pool.execute(query, params);
+//         console.log('MySQL:', logQuery);
+//         return {
+//             success: true,
+//             data: rows,
+//             error: null
+//         };
+//     } catch (error) {
+//         console.log('❌ Erro ao conectar MySQL. Query:', logQuery); 
+//         console.log('❌ Erro ao conectar MySQL:', error.message);
+//         return {
+//             success: false,
+//             data: null,
+//             error: error.message
+//         };
+//     }
+// }
+
+/**
+ * Executa uma query no banco de dados com retry automático
+ * @param {string} query - Query SQL a ser executada
+ * @param {Array} params - Parâmetros da query
+ * @param {number} retries - Número de tentativas (padrão: 3)
+ * @returns {Promise} Resultado da query
+ */
+async function executeQuery(query, params = [], retries = 3) {
     const logQuery = formatQueryForLog(query, params);
-    try {
-        const [rows] = await pool.execute(query, params);
-        console.log('MySQL:', logQuery);
-        return {
-            success: true,
-            data: rows,
-            error: null
-        };
-    } catch (error) {
-        console.log('❌ Erro ao conectar MySQL. Query:', logQuery); 
-        console.log('❌ Erro ao conectar MySQL:', error.message);
-        return {
-            success: false,
-            data: null,
-            error: error.message
-        };
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const [rows] = await pool.execute(query, params);
+            console.log('MySQL:', logQuery);
+            return {
+                success: true,
+                data: rows,
+                error: null
+            };
+        } catch (error) {
+            const shouldRetry = (
+                error.code === 'ER_NEED_REPREPARE' || 
+                error.code === 'PROTOCOL_CONNECTION_LOST' ||
+                error.code === 'ECONNRESET' ||
+                error.message.includes('Prepared statement needs to be re-prepared')
+            );
+
+            // Se deve tentar novamente e ainda tem tentativas
+            if (shouldRetry && attempt < retries) {
+                console.log(`⚠️ Tentativa ${attempt}/${retries} falhou. Tentando novamente...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Delay progressivo
+                continue;
+            }
+
+            // Última tentativa ou erro não recuperável
+            console.log('❌ Erro ao conectar MySQL. Query:', logQuery); 
+            console.log('❌ Erro ao conectar MySQL:', error.message);
+            return {
+                success: false,
+                data: null,
+                error: error.message
+            };
+        }
     }
 }
 
@@ -207,13 +260,13 @@ async function testConnection() {
         await connection.ping();
         connection.release();
         //console.log('✅ Conexão com banco de dados estabelecida com sucesso');
-        logger.info('✅ MySQL conectado com sucesso!');
-        logger.info(`📊 Database: ${dbConfig.database}`);
-        logger.info(`🖥️  Host: ${dbConfig.host}:${dbConfig.port}`);
+        console.log('✅ MySQL conectado com sucesso!');
+        console.log(`📊 Database: ${dbConfig.database}`);
+        console.log(`🖥️  Host: ${dbConfig.host}:${dbConfig.port}`);
         return true;
     } catch (error) {
         //console.error('❌ Erro na conexão com banco de dados:', error.message);
-        logger.error('❌ Erro na conexão com banco de dados:', error.message);
+        console.log('❌ Erro na conexão com banco de dados:', error.message);
         return false;
     }
 }
