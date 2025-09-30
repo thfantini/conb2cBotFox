@@ -4,9 +4,9 @@ Entendi perfeitamente o projeto e as diretrizes. Vou resumir o que compreendi:
 
 **Bot de Atendimento WhatsApp com Node.js**
 - Integração via API Evolution 
-- Banco MySQL com view `vw_boletos`
+- Banco MySQL com view `vw_botBoletos`
 - Fluxo automatizado de atendimento
-- Registro de conversas na tabela `atendimento`
+- Registro de conversas na tabela `whapi_atendimento`
 
 ## **Funcionalidades Principais**
 
@@ -20,8 +20,8 @@ Entendi perfeitamente o projeto e as diretrizes. Vou resumir o que compreendi:
 ## **Estrutura Técnica**
 - Node.js + MySQL
 - API Evolution para WhatsApp
-- View `vw_boletos` como fonte principal
-- Tabela `atendimento` para logs
+- View `vw_botBoletos` como fonte principal
+- Tabela `whapi_atendimento` para logs
 - Sem dados mockados - tudo dinâmico
 
 ## **Diretrizes Confirmadas** ✅

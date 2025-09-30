@@ -1,0 +1,10 @@
+comp74_appFox
+D32bgs5M$Fox
+
+      - DB_HOST=brs15.dialhost.com.br:2083
+      - DB_PORT=3306
+      - DB_USER=comp74_appFox
+      - DB_PASSWORD=D32bgs5M$Fox
+      - DB_NAME=comp74_app_fox
+
+https://brs15.dialhost.com.br:2083/cpsess0182286873/3rdparty/phpMyAdmin/index.php

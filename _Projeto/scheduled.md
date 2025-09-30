@@ -25,7 +25,7 @@ Criei o arquivo de rotas seguindo **exatamente os padrões** identificados no re
 - Suporte a `CRON_INTERVAL` configurável (padrão: */5 * * * *)
 - Validação de todas as variáveis necessárias
 - Preparado para as regras da tabela `aux_cron`
-- Integração com `vw_boletos` e tabela `boletos`
+- Integração com `vw_botCron` e tabela `boletos`
 
 **🔒 Segurança:**
 - Token validation usando `WEBHOOK_TOKEN` ou `SCHEDULED_TOKEN`
@@ -39,7 +39,7 @@ Criei o arquivo de rotas seguindo **exatamente os padrões** identificados no re
 Este será o **serviço principal** que implementará:
 - Lógica de verificação da tabela `aux_cron`
 - Validação de horários (`hora_inicio` e `hora_fim`)
-- Busca na `vw_boletos` por cliente
+- Busca na `vw_botClientes` por cliente
 - Orquestração do envio de mensagens
 - Atualização de status na tabela `boletos`
 

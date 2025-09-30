@@ -210,7 +210,7 @@ async function iniciarNovaConversa(phoneNumber, messageId, messageText) {
  */
 async function processarEstadoAtual(conversa, messageText) {
 
-    console.log('processarEstadoAtual:');
+    console.log('FUNCAO: processarEstadoAtual:');
     console.log('- conversa: ', conversa);
     console.log('- estado: ', conversa.estado);
     console.log('- messageText: ', messageText);
@@ -244,9 +244,10 @@ async function processarEstadoAtual(conversa, messageText) {
 async function processarCNPJ(conversa, cnpj) {
     const cnpjLimpo = cnpj.replace(/\D/g, '');
 
-    logger.info('processarCNPJ:');
+    logger.info('FUNCAO: processarCNPJ:');
     logger.info('- conversa', conversa);
     logger.info('- cnpj', cnpj);
+    logger.info('- cnpjLimpo', cnpjLimpo);
     
     if (cnpjLimpo.length !== 14) {
         await enviarMensagem(conversa.phoneNumber, 

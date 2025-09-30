@@ -91,17 +91,16 @@ src/
 Execute o SQL para criar a view necessária:
 
 ```sql
--- Criar view whapi_clientes (exemplo baseado na estrutura existente)
-CREATE VIEW whapi_clientes AS
+-- Criar view whapi_empresas (exemplo baseado na estrutura existente)
+CREATE VIEW whapi_empresas AS
 SELECT DISTINCT 
     cliente,
     cnpj,
     nome,
     celular as celular,
-    -- Adicionar campo email se não existir na tabela original
-    CONCAT(LOWER(REPLACE(nome, ' ', '.')), '@empresa.com') as email,
+    email as email,
     1 as status
-FROM vw_boletos
+FROM vw_botClientes
 WHERE celular IS NOT NULL 
 AND cnpj IS NOT NULL;
 ```
@@ -170,7 +169,7 @@ curl -X POST http://localhost:3000/webhook-message/teste \
 - ✅ **1 linha** de rota na função `setupRoutes()`  
 - ✅ **1 dependência** npm (nodemailer)
 - ✅ **Variáveis** de ambiente para SMTP
-- ✅ **View** no banco de dados (whapi_clientes)
+- ✅ **View** no banco de dados (whapi_empresas)
 
 ### **10. Arquivo Completo das Rotas**
 

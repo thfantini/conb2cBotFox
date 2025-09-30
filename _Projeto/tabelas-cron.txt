@@ -16,9 +16,9 @@ A Regra 2 somente deve ser executada se hora_inicio e hora_fim corresponderem ao
 2 - REGRA VALIDACAO:
 
 Apos recuperar: cliente da tabela: aux_cron
-devemos verificar se existem registros para envio na view: vw_boletos
+devemos verificar se existem registros para envio na view: vw_botCron
 
-sql: select * from vw_boletos where cliente = {cliente} and status=0
+sql: select * from vw_botCron where cliente = {cliente} and status=0
 
 3 - REGRA DE ENVIO:
 Ao identitificar as mensagens, essas devem ser enviadas utilizando os mesmos criterios de envio da funcao:
@@ -31,14 +31,14 @@ crie um arquivo especifico para o envio de mensagens baseando-se em: whatsappSer
 Incluir uma mensagem amigavel antes dos dados do boleto para pagamento.
 
 5 - EMAIL
-Deve ser enviada uma copia da mensagem também atraves do {e-mail} recuperado na view: vw_boletos
+Deve ser enviada uma copia da mensagem também atraves do {e-mail} recuperado na view: vw_botCron
 
 REGRA: 
 crie um arquivo especifico para o envio de mensagens de e-mail
 
 6 - Ao enviar a mensagem deve-se regsitrar o envio na tabela: boletos
-sql: update boletos set status=1,status_data={DATETIME} where idConta = {idConta}
-idConta: campo recuperado na view: vw_boletos na Regra 2
+sql: update whapi_clientes_boleto set status=1,statusData={DATETIME} where idConta = {idConta}
+idConta: campo recuperado na view: vw_botCron na Regra 2
 
 DIRETRIZ:
 

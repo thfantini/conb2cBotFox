@@ -33,7 +33,7 @@ DIRETRIZES
 
 ---------------------------------------------
 
-vw_boletos > vw_botboletos
+vw_boletos > vw_botBoletos > vw_botCron
 SELECT
 whapi_clientes_boleto.cliente,
 whapi_clientes_boleto.cnpj,

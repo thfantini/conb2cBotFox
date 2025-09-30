@@ -221,7 +221,7 @@ router.get('/config', async (req, res) => {
             database: {
                 cronTable: 'aux_cron',
                 boletosTable: 'boletos',
-                viewBoletos: 'vw_boletos'
+                viewBoletos: 'vw_botCron'
             },
             services: {
                 whatsapp: {

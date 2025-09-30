@@ -5,7 +5,7 @@ Vou começar criando o **webhookMessagesController.js** que será o controlador 
 ## ✅ **Funcionalidades Implementadas:**
 
 1. **Validação completa da requisição** - CNPJ e estrutura da mensagem (texto/imagem)
-2. **Validação do cliente autorizado** - Consulta na view `whapi_clientes` com status=1
+2. **Validação do cliente autorizado** - Consulta na view `whapi_empresas` com status=1
 3. **Estrutura preparada** para integração com serviços de WhatsApp e Email
 4. **Middleware de segurança** - Token validation e logging específico
 5. **Endpoint de status** para monitoramento do micro-serviço
@@ -21,7 +21,7 @@ Vou começar criando o **webhookMessagesController.js** que será o controlador 
 ## 📋 **Regras Implementadas:**
 
 ✅ Validação de CNPJ (14 dígitos)  
-✅ Verificação na view `whapi_clientes` com `status=1`  
+✅ Verificação na view `whapi_empresas` com `status=1`  
 ✅ Validação de email e celular do cliente  
 ✅ Suporte para mensagens texto e imagem  
 ✅ Logging detalhado e sanitizado  

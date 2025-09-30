@@ -242,10 +242,10 @@ class WebhookMessagesController {
             // Formatação do CNPJ para consulta
             const cnpjFormatado = WebhookMessagesController.formatarCNPJ(cnpj);
             
-            // Consulta na view whapi_clientes
+            // Consulta na view whapi_empresas
             const query = `
                 SELECT email, celular 
-                FROM whapi_clientes 
+                FROM whapi_empresas 
                 WHERE cnpj = ? AND status = 1
                 LIMIT 1
             `;

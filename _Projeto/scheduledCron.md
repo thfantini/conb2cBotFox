@@ -50,11 +50,11 @@ src/modules/scheduled-messages/
 
 **🎯 Todas as Regras Atendidas:**
 - ✅ **REGRA GERAL**: Verificação da tabela `aux_cron`
-- ✅ **REGRA VALIDAÇÃO**: Busca na `vw_boletos` com `status=0`
+- ✅ **REGRA VALIDAÇÃO**: Busca na `vw_botCron` com `status=0`
 - ✅ **REGRA DE ENVIO**: Baseado em `processarBoletos()`
 - ✅ **FORMATO**: Mensagem amigável + dados do boleto
 - ✅ **EMAIL**: Envio via SMTP com template HTML
-- ✅ **ATUALIZAÇÃO**: `UPDATE boletos SET status=1`
+- ✅ **ATUALIZAÇÃO**: `UPDATE whapi_clientes_boleto SET status=1`
 
 **📡 APIs Disponíveis:**
 - `GET /scheduled/status` - Status consolidado

@@ -130,7 +130,7 @@ if (process.env.NODE_ENV === 'development') {
                 }
             },
             rules: {
-                authorization: 'Somente CNPJs registrados na view whapi_clientes com status=1',
+                authorization: 'Somente CNPJs registrados na view whapi_empresas com status=1',
                 validation: 'Cliente deve possuir email e celular válidos',
                 delivery: {
                     whatsapp: 'Enviado via Evolution API para o celular cadastrado',
@@ -152,7 +152,7 @@ if (process.env.NODE_ENV === 'development') {
                     'SMTP_PASS'
                 ],
                 database: {
-                    table: 'whapi_clientes',
+                    table: 'whapi_empresas',
                     fields: ['cnpj', 'email', 'celular', 'status']
                 }
             }

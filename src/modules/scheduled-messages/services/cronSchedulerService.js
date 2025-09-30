@@ -177,7 +177,7 @@ class CronSchedulerService {
 
     /**
      * REGRA VALIDACAO: Processa um cliente específico
-     * Verifica se existem boletos para envio na view vw_boletos
+     * Verifica se existem boletos para envio na view vw_botCron
      * @param {Object} clienteCron - Dados do cliente da tabela aux_cron
      * @returns {Promise<Object>} Resultado do processamento
      */
@@ -244,8 +244,8 @@ class CronSchedulerService {
     }
 
     /**
-     * REGRA VALIDACAO: Busca boletos pendentes na view vw_boletos
-     * SQL: select * from vw_boletos where cliente = {cliente} and status=0
+     * REGRA VALIDACAO: Busca boletos pendentes na view vw_botCron
+     * SQL: select * from vw_botCron where cliente = {cliente} and status=0
      * @param {number} clienteId - ID do cliente
      * @returns {Promise<Object>} Lista de boletos pendentes
      */
@@ -254,7 +254,7 @@ class CronSchedulerService {
             const query = `
                 SELECT cliente, cnpj, nome, celular, idNfse, idConta,
                        dataDoc, dataVencimento, numero, valor, codBarras, linhaDigitavel, email, url
-                FROM vw_boletos
+                FROM vw_botCron
                 WHERE cliente = ?
                 AND status = 0
                 ORDER BY dataVencimento ASC
@@ -449,7 +449,7 @@ class CronSchedulerService {
 
     /**
      * ATUALIZAÇÃO: Atualiza status dos boletos após envio
-     * SQL: update boletos set status=1,status_data={DATETIME} where idConta = {idConta}
+     * SQL: update whapi_clientes_boleto set status=1,statusData={DATETIME} where idConta = {idConta}
      * @param {Array} boletos - Lista de boletos enviados
      * @returns {Promise<Object>} Resultado da atualização
      */

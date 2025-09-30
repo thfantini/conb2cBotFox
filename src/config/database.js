@@ -31,6 +31,7 @@ const pool = mysql.createPool(dbConfig);
 async function executeQuery(query, params = []) {
     try {
         const [rows] = await pool.execute(query, params);
+        logger.info('MySQL:', query);
         return {
             success: true,
             data: rows,
@@ -48,14 +49,14 @@ async function executeQuery(query, params = []) {
 }
 
 /**
- * Busca cliente por CNPJ na view vw_boletos
+ * Busca cliente por CNPJ na view vw_botClientes
  * @param {string} cnpj - CNPJ do cliente
  * @returns {Promise} Dados do cliente
  */
 async function getClienteByCNPJ(cnpj) {
     const query = `
-        SELECT DISTINCT cliente, cnpj, nome, celular, empNome, empCNPJ
-        FROM vw_boletos 
+        SELECT DISTINCT cliente, cnpj, nome, celular, email
+        FROM vw_botClientes 
         WHERE cnpj = ?
         LIMIT 1
     `;
@@ -63,14 +64,14 @@ async function getClienteByCNPJ(cnpj) {
 }
 
 /**
- * Busca cliente por número de celular
+ * Busca cliente por número de celular na view vw_botClientes
  * @param {string} celular - Número do celular
  * @returns {Promise} Dados do cliente
  */
 async function getClienteByCelular(celular) {
     const query = `
-        SELECT DISTINCT cliente, cnpj, nome, celular, empNome, empCNPJ
-        FROM vw_boletos 
+        SELECT DISTINCT cliente, cnpj, nome, celular, email
+        FROM vw_botClientes 
         WHERE celular = ?
         LIMIT 1
     `;
@@ -78,31 +79,31 @@ async function getClienteByCelular(celular) {
 }
 
 /**
- * Busca boletos em aberto do cliente
+ * Busca boletos em aberto do cliente na view: vw_botBoletos
  * @param {string} cnpj - CNPJ do cliente
  * @returns {Promise} Lista de boletos
  */
 async function getBoletosByCNPJ(cnpj) {
     const query = `
-        SELECT nfse, conta, dataDoc, dataVencimento, numero, valor, 
-               codBarras, linhaDigitavel, empNome
-        FROM vw_boletos 
+        SELECT id, idNfse nfse, idConta conta, dataDoc, dataVencimento, numero, valor, 
+               codBarras, linhaDigitavel, status
+        FROM vw_botBoletos 
         WHERE cnpj = ?
-        AND dataVencimento >= CURDATE()
+        -- AND dataVencimento >= CURDATE()
         ORDER BY dataVencimento ASC
     `;
     return await executeQuery(query, [cnpj]);
 }
 
 /**
- * Registra atendimento na tabela atendimento
+ * Registra atendimento na tabela whapi_atendimento
  * @param {Object} atendimentoData - Dados do atendimento
  * @returns {Promise} Resultado da inserção
  */
 async function registrarAtendimento(atendimentoData) {
     const { messageId, cliente, cnpj, conversa } = atendimentoData;
     const query = `
-        INSERT INTO atendimento (messageId, cliente, cnpj, data, conversa)
+        INSERT INTO whapi_atendimento (messageId, cliente, cnpj, data, conversa)
         VALUES (?, ?, ?, NOW(), ?)
     `;
     return await executeQuery(query, [messageId, cliente, cnpj, JSON.stringify(conversa)]);
@@ -116,7 +117,7 @@ async function registrarAtendimento(atendimentoData) {
  */
 async function atualizarConversa(messageId, conversa) {
     const query = `
-        UPDATE atendimento 
+        UPDATE whapi_atendimento 
         SET conversa = ?
         WHERE messageId = ?
     `;
@@ -131,7 +132,7 @@ async function atualizarConversa(messageId, conversa) {
 async function getAtendimentoByMessageId(messageId) {
     const query = `
         SELECT id, messageId, cliente, cnpj, data, conversa
-        FROM atendimento 
+        FROM whapi_atendimento 
         WHERE messageId = ?
         LIMIT 1
     `;

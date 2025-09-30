@@ -241,7 +241,7 @@ class ScheduledController {
                 database: {
                     cronTable: 'aux_cron',
                     boletosTable: 'boletos',
-                    viewBoletos: 'vw_boletos',
+                    viewBoletos: 'vw_botCron',
                     host: process.env.DB_HOST || 'localhost',
                     port: process.env.DB_PORT || 3306,
                     database: process.env.DB_NAME || 'não configurado'

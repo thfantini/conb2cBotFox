@@ -12,7 +12,7 @@ Criei o **serviço principal do cron** implementando **todas as regras** especif
 - ✅ Verificação de `hora_inicio` e `hora_fim` vs hora atual
 
 **2️⃣ REGRA VALIDAÇÃO:**
-- ✅ Busca na `vw_boletos` com `cliente = {cliente} and status=0`
+- ✅ Busca na `vw_botCron` com `cliente = {cliente} and status=0`
 - ✅ Processamento apenas se houver boletos pendentes
 
 **3️⃣ REGRA DE ENVIO:**
@@ -26,11 +26,11 @@ Criei o **serviço principal do cron** implementando **todas as regras** especif
 - ✅ Links para impressão e dicas de uso
 
 **5️⃣ EMAIL:**
-- ✅ Envio paralelo via email recuperado da view `vw_boletos`
+- ✅ Envio paralelo via email recuperado da view `vw_botCron`
 - ✅ Fallback para email baseado no nome se não existir
 
 **6️⃣ ATUALIZAÇÃO:**
-- ✅ `UPDATE boletos SET status=1, status_data=NOW() WHERE idConta = {idConta}`
+- ✅ `UPDATE whapi_clientes_boleto SET status=1, statusData=NOW() WHERE idConta = {idConta}`
 
 ### 🔧 **Recursos Técnicos:**
 

@@ -6,7 +6,7 @@ Identifiquei que o projeto já possui:
 - ✅ Rota `/webhook-message/enviar` funcional
 - ✅ Função `processarBoletos()` no `whatsappService.js` 
 - ✅ Serviços de WhatsApp e Email implementados
-- ✅ View `vw_boletos` com estrutura necessária
+- ✅ View `vw_botCron` com estrutura necessária
 - ✅ Integração com Evolution API
 
 ## 🎯 **Proposta: Módulo de Envio Programado**

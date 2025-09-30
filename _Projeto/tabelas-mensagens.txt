@@ -12,19 +12,19 @@ Somente CNPJ registrados serão autorizados a receber as mensagens.
 
 2 - REGRA VALIDACAO:
 
-cnpj: existe na view: whapi_clientes
+cnpj: existe na view: whapi_empresas
 
-sql: select email,celular from whapi_clientes where cnpj = {cnpj} and status=1
+sql: select email,celular from whapi_empresas where cnpj = {cnpj} and status=1
 
 3 - REGRA DE ENVIO:
-Ao identitificar o cliente a mensagem deve ser enviada para o numero {celular} recuperado na view: whapi_clientes
+Ao identitificar o cliente a mensagem deve ser enviada para o numero {celular} recuperado na view: whapi_empresas
 
 4 - FORMATO
 A mensagem poderá ser dos tipos: text e image apenas.
 REGRA: crie um arquivo especifico para o envio de mensagens de whatsapp
 
 5 - EMAIL
-Deve ser enviada uma copia da mensagem também atraves do {e-mail} recuperado na view: whapi_clientes
+Deve ser enviada uma copia da mensagem também atraves do {e-mail} recuperado na view: whapi_empresas
 REGRA: crie um arquivo especifico para o envio de mensagens de e-mail
 
 DIRETRIZ:

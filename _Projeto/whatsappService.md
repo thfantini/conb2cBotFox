@@ -15,13 +15,13 @@ Criei o arquivo `src/services/whatsappService.js` com toda a lógica de negócio
 - Marcação automática como "lida"
 
 **🎯 Opções do Menu:**
-1. **Boletos** - Busca na `vw_boletos`, formata valores e datas
+1. **Boletos** - Busca na `vw_botBoletos`, formata valores e datas
 2. **Notas Fiscais** - Estrutura pronta (aguardando view)
 3. **Certificados** - Estrutura pronta (aguardando view)
 4. **Propostas/Atendente** - Transferência para humanos
 
 **💾 Registro Completo:**
-- Histórico JSON na tabela `atendimento`
+- Histórico JSON na tabela `whapi_atendimento`
 - Registro inicial com `messageId` do webhook
 - Atualização contínua da conversa
 - Estrutura: `{tipo: cliente/bot, data, mensagem}`

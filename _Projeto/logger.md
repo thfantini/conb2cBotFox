@@ -51,7 +51,7 @@ Criei o arquivo `src/utils/logger.js` com um sistema completo e avançado de log
 ```javascript
 logger.info('Bot iniciado', { version: '1.0.0' });
 logger.webhook('5531999999999', 'Olá', 'incoming');
-logger.database('SELECT', 'vw_boletos', { cnpj: 'XXX' });
+logger.database('SELECT', 'vw_botClientes', { cnpj: 'XXX' });
 logger.error('Erro na API', { service: 'evolution' });
 ```
 
