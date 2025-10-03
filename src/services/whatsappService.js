@@ -374,9 +374,49 @@ async function processarBoletos(conversa) {
 }
 
 /**
- * Processa solicitação de notas fiscais
+ * Processa solicitação de nfe
  * @param {Object} conversa - Dados da conversa
  */
+async function processarNotasFiscais(conversa) {
+    const nfeResult = await database.getNFEByCNPJ(conversa.dados.cnpj);
+
+    console.log('processarNotasFiscais:');
+    console.log('- conversa', conversa);
+    
+    if (nfeResult.success && nfeResult.data.length > 0) {
+        await enviarMensagem(conversa.phoneNumber, 
+            `📄 *Notas Fiscais*\n\nEncontrei ${nfeResult.data.length} Nota(s) em aberto:`
+        );
+
+        for (const nfse of nfeResult.data) {
+            const dataNfe = moment(nfse.dataNfe).format('DD/MM/YYYY');
+            const valor = parseFloat(nfse.valor).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+
+            const mensagemNfse = 
+                `🧾 *Nota #${nfse.numero}*\n` +
+                `📅 Data Emissão: ${dataNfe}\n` +
+                `💰 Valor: ${valor}\n\n` +
+                `🔢 Código:\n${nfse.codigo}\n\n` +
+                `📎 Link:\n${nfse.url}`;
+
+            await enviarMensagem(conversa.phoneNumber, mensagemNfse);
+        }
+    } else {
+        await enviarMensagem(conversa.phoneNumber, 
+            '✅ Você não possui Notas Fiscais em aberto no momento.'
+        );
+    }
+    
+    await enviarMenuVoltar(conversa.phoneNumber);
+}
+
+/**
+ * Processa solicitação de notas fiscais
+ * @param {Object} conversa - Dados da conversa
+
 async function processarNotasFiscais(conversa) {
     
     console.log('processarNotasFiscais:');
@@ -391,11 +431,52 @@ async function processarNotasFiscais(conversa) {
     
     await enviarMenuVoltar(conversa.phoneNumber);
 }
+ */
+
+
+/**
+ * Processa solicitação de Certificados
+ * @param {Object} conversa - Dados da conversa
+ */
+async function processarCertificados(conversa) {
+    const certResult = await database.getCertificadoByCNPJ(conversa.dados.cnpj);
+
+    console.log('processarCertificados:');
+    console.log('- conversa', conversa);
+    
+    if (certResult.success && certResult.data.length > 0) {
+        await enviarMensagem(conversa.phoneNumber, 
+            `📄 *Certificados*\n\nEncontrei ${certResult.data.length} Certificado(s):`
+        );
+
+        for (const cert of certResult.data) {
+            const dataCert = moment(cert.dataEmissao).format('DD/MM/YYYY');
+            const valor = parseFloat(cert.valor).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+
+            const mensagemCertificados = 
+                `🧾 *Número #${cert.numero}*\n` +
+                `📅 Data Emissão: ${dataCert}\n` +
+                `📄 Nota: ${cert.numeroNota}\n\n` +
+                `📎 Link:\n${cert.url}`;
+
+            await enviarMensagem(conversa.phoneNumber, mensagemCertificados);
+        }
+    } else {
+        await enviarMensagem(conversa.phoneNumber, 
+            '✅ Você não possui Certificados no momento.'
+        );
+    }
+    
+    await enviarMenuVoltar(conversa.phoneNumber);
+}
 
 /**
  * Processa solicitação de certificados
  * @param {Object} conversa - Dados da conversa
- */
+
 async function processarCertificados(conversa) {
 
     console.log('processarCertificados:');
@@ -410,6 +491,7 @@ async function processarCertificados(conversa) {
     
     await enviarMenuVoltar(conversa.phoneNumber);
 }
+ */
 
 /**
  * Processa transferência para atendimento humano

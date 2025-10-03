@@ -1,0 +1,179 @@
+-------------------------------------------------------------
+#BOLETO MATRIZ
+-------------------------------------------------------------
+
+SELECT 
+'1' cliente,
+id_cliente idCliente,
+cod_conta idConta,
+id_nfse idNfse,
+cnpj_pagador cnpj,
+cliente nome,
+Whatsapp celular,
+'suporte@conb2c.com.br' email,
+numero_documento numero,
+valor_documento valor,
+data_documento dataDoc,
+data_vencimento dataVencimento,
+codigo_barras codBarras,
+linha_digitavel linhaDigitavel
+FROM dbo.v_boleto_mes
+WHERE MONTH(data_documento) = DATEPART(MONTH, GETDATE())
+  AND YEAR(data_documento) = DATEPART(YEAR, GETDATE())
+
+--------------------------------------------------------------------------------------------------------------------------
+#BOLETO: 
+#CAMPOS: cliente,idCliente,idConta,idNfse,cnpj,numero,valor,dataDoc,dataVencimento,codBarras,linhaDigitavel
+--------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+'1' cliente,
+id_cliente idCliente,
+cod_conta idConta,
+id_nfse idNfse,
+cnpj_pagador cnpj,
+numero_documento numero,
+valor_documento valor,
+data_documento dataDoc,
+data_vencimento dataVencimento,
+codigo_barras codBarras,
+linha_digitavel linhaDigitavel
+FROM dbo.v_boleto_mes
+WHERE MONTH(data_documento) = DATEPART(MONTH, GETDATE())
+  AND YEAR(data_documento) = DATEPART(YEAR, GETDATE())
+
+
+--------------------------------------------------------------------------------------------------------------------------
+#NFE: 
+#CAMPOS: cliente,idNfse,idCliente,cnpj,numero,dataEmissao,dataNfe,codigo,valor
+--------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+'1' cliente,
+id idNfse,
+id_cliente idCliente,
+cnpj_cliente cnpj,
+-- nome_cliente nome,
+-- telefone_cliente celular,
+-- email_cliente email,
+numero_nota numero,
+data_emissao dataEmissao,
+data_competencia dataNfe,
+codigo_verificacao codigo,
+valor_servico valor
+from dbo.v_ambientec_nfse 
+WHERE MONTH(data_emissao) = DATEPART(MONTH, GETDATE())
+  AND YEAR(data_emissao) = DATEPART(YEAR, GETDATE())
+
+
+--------------------------------------------------------------------------------------------------------------------------
+#CERTIFICADOS: 
+#CAMPOS: cliente,indBoleto,indXML,idCert,idNfse,idConta,idCliente,cnpj,numero,numeroNota,dataEmissao,valor
+--------------------------------------------------------------------------------------------------------------------------
+
+
+select
+'1' cliente,
+ind_boleto indBoleto,
+ind_xml indXML,
+id idCert,
+id_nota idNfse,
+cod_conta idConta,
+codigo_cliente idCliente,
+cnpj_gerador cnpj,
+-- razao_social_gerador nome,
+numero_certificado numero,
+numero_nota_certificado numeroNota,
+data_emissao_nfse dataEmissao,
+valor_servico valor
+from dbo.v_ambientec_cabecalho 
+WHERE MONTH(data_emissao_nfse) = DATEPART(MONTH, GETDATE())
+  AND YEAR(data_emissao_nfse) = DATEPART(YEAR, GETDATE())
+  
+--------------------------------------------------------------------------------------------------------------------------
+#CLIENTES: 
+#CAMPOS: cliente,idCliente,cnpj,nome,celular,email
+--------------------------------------------------------------------------------------------------------------------------
+
+
+SELECT 
+'1' cliente,
+id_cliente idCliente,
+cnpj_pagador cnpj,
+Cliente nome,
+Whatsapp celular,
+-- '5531994931105' celular,
+'suporte@conb2c.com.br' email
+from dbo.v_boleto_mes
+WHERE MONTH(data_documento) = DATEPART(MONTH, GETDATE())
+  AND YEAR(data_documento) = DATEPART(YEAR, GETDATE())
+
+--------------------------------------------------------------------------------------------------------------------------
+#CONSULTAS
+--------------------------------------------------------------------------------------------------------------------------
+
+SELECT * FROM whapi_clientes where cnpj='10.588.394/0001-02';
+SELECT * FROM whapi_clientes_boleto where cnpj='10.588.394/0001-02';
+SELECT * FROM whapi_clientes_nfe where cnpj='10.588.394/0001-02';
+SELECT * FROM whapi_clientes_certificado where idCliente=10078;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

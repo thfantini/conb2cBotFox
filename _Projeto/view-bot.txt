@@ -1,0 +1,114 @@
+----------------------------------------------------------------------------------
+#VIEW: vw_botBoletos
+----------------------------------------------------------------------------------
+
+SELECT 
+whapi_clientes_boleto.id AS id,
+whapi_clientes_boleto.idCliente,
+whapi_clientes_boleto.cnpj AS cnpj,
+whapi_clientes_boleto.idConta AS idConta,
+whapi_clientes_boleto.idNfse AS idNfse,
+whapi_clientes_boleto.dataDoc AS dataDoc,
+whapi_clientes_boleto.dataVencimento AS dataVencimento,
+whapi_clientes_boleto.numero AS numero,
+whapi_clientes_boleto.valor AS valor,
+whapi_clientes_boleto.codBarras AS codBarras,
+whapi_clientes_boleto.linhaDigitavel AS linhaDigitavel,
+CONCAT(aux_app.url,'boleto/',whapi_clientes_boleto.idConta,'/') AS url,
+whapi_clientes_boleto.status AS status
+FROM whapi_clientes_boleto
+LEFT JOIN aux_app ON aux_app.cliente = whapi_clientes_boleto.cliente
+WHERE whapi_clientes_boleto.cnpj <> ''
+AND whapi_clientes_boleto.codBarras IS NOT NULL
+
+----------------------------------------------------------------------------------
+#VIEW: vw_botNFE
+----------------------------------------------------------------------------------
+
+SELECT 
+whapi_clientes_nfe.id,
+whapi_clientes_nfe.idCliente,
+whapi_clientes_nfe.cnpj,
+whapi_clientes_nfe.idNfse,
+whapi_clientes_nfe.numero,
+whapi_clientes_nfe.dataEmissao,
+whapi_clientes_nfe.dataNfe,
+whapi_clientes_nfe.codigo,
+whapi_clientes_nfe.valor,
+CONCAT(aux_app.url,'nfe',whapi_clientes_nfe.idNfse,'/') AS url,
+whapi_clientes_nfe.status
+FROM whapi_clientes_nfe
+LEFT JOIN aux_app ON aux_app.cliente = whapi_clientes_nfe.cliente
+WHERE whapi_clientes_nfe.cnpj <> ''
+AND whapi_clientes_nfe.numero IS NOT NULL
+
+----------------------------------------------------------------------------------
+#VIEW: vw_botCertificado
+----------------------------------------------------------------------------------
+
+
+SELECT 
+whapi_clientes_certificado.id,
+whapi_clientes_certificado.idCliente,
+whapi_clientes_certificado.cnpj,
+whapi_clientes_certificado.idCert,
+whapi_clientes_certificado.idNfse,
+whapi_clientes_certificado.idConta,
+whapi_clientes_certificado.numero,
+whapi_clientes_certificado.numeroNota,
+whapi_clientes_certificado.dataEmissao,
+CONCAT(aux_app.url,'certificado',whapi_clientes_certificado.idCert,'/') AS url,
+whapi_clientes_certificado.status
+FROM whapi_clientes_certificado
+LEFT JOIN aux_app ON aux_app.cliente = whapi_clientes_certificado.cliente
+WHERE whapi_clientes_certificado.cnpj <> ''
+
+----------------------------------------------------------------------------------
+#VIEW: vw_botCliente
+----------------------------------------------------------------------------------
+
+SELECT 
+whapi_clientes.id,
+whapi_clientes.cliente,
+whapi_clientes.idCliente,
+whapi_clientes.cnpj,
+whapi_clientes.nome,
+whapi_clientes.celular,
+whapi_clientes.email,
+aux_app.url,
+whapi_clientes.status
+FROM whapi_clientes
+LEFT JOIN aux_app ON aux_app.cliente = whapi_clientes.cliente
+WHERE whapi_clientes.cnpj <> ''
+
+----------------------------------------------------------------------------------
+#VIEW: vw_botCron
+----------------------------------------------------------------------------------
+
+SELECT 
+whapi_clientes_boleto.id,
+whapi_clientes_boleto.cliente,
+whapi_clientes_boleto.idCliente,
+whapi_clientes_boleto.cnpj,
+whapi_clientes.nome,
+whapi_clientes.celular,
+whapi_clientes.email,
+whapi_clientes_boleto.idConta,
+whapi_clientes_boleto.dataDoc,
+whapi_clientes_boleto.dataVencimento,
+whapi_clientes_boleto.numero,
+whapi_clientes_boleto.valor,
+whapi_clientes_boleto.codBarras,
+whapi_clientes_boleto.linhaDigitavel,
+CONCAT(aux_app.url,'boleto/',whapi_clientes_boleto.idConta,'/') AS url,
+whapi_clientes_boleto.status AS status
+FROM whapi_clientes_boleto
+LEFT JOIN aux_app ON aux_app.cliente = whapi_clientes_boleto.cliente
+LEFT JOIN whapi_clientes ON whapi_clientes.idCliente=whapi_clientes_boleto.idCliente
+WHERE whapi_clientes_boleto.cnpj <> ''
+AND whapi_clientes_boleto.codBarras IS NOT NULL
+AND whapi_clientes_boleto.status = 0
+
+
+
+

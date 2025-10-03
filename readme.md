@@ -38,7 +38,7 @@ Bot de atendimento automatizado ao cliente integrado ao WhatsApp via API Evoluti
 5. **Falar com Atendente** - Encaminhamento para fila de atendimento
 
 ### 🗄️ Integração Banco de Dados
-- **MySQL** com view `vw_boletos` como fonte principal
+- **MySQL** com view `vw_botBoletos` como fonte principal
 - **Pool de conexões** otimizado para performance
 - **Queries parametrizadas** para segurança SQL injection
 - **Registro de atendimentos** na tabela `atendimento`
@@ -127,7 +127,7 @@ BOT_NAME=Bot Atendimento
 ### 3. Estrutura do Banco
 Certifique-se que existam as tabelas:
 
-**View `vw_boletos`:**
+**View `vw_botBoletos`:**
 ```sql
 SELECT 
     cliente, cnpj, nome, celular, nfse, conta,
@@ -136,9 +136,9 @@ SELECT
 FROM sua_tabela_base;
 ```
 
-**Tabela `atendimento`:**
+**Tabela `whapi_atendimento`:**
 ```sql
-CREATE TABLE atendimento (
+CREATE TABLE whapi_atendimento (
     id INT AUTO_INCREMENT PRIMARY KEY,
     messageId VARCHAR(100) NOT NULL,
     cliente INT,
@@ -211,13 +211,13 @@ CNPJ válido na base?
 ```
 
 ### 5. Processamento das Opções
-- **Opção 1**: Busca boletos em `vw_boletos` e formata resposta
+- **Opção 1**: Busca boletos em `vw_botBoletos` e formata resposta
 - **Opção 2/3**: Mensagem informativa (aguardando implementação)
 - **Opção 4/5**: Transfere para atendimento humano
 
 ## 🗄️ Estrutura do Banco
 
-### View `vw_boletos`
+### View `vw_botBoletos`
 ```json
 {
   "cliente": 5,
@@ -237,7 +237,7 @@ CNPJ válido na base?
 }
 ```
 
-### Tabela `atendimento`
+### Tabela `whapi_atendimento`
 ```json
 {
   "id": 1,
@@ -271,7 +271,7 @@ CNPJ válido na base?
 ```javascript
 logger.info('Mensagem geral');
 logger.webhook('5531999999999', 'Texto da mensagem', 'incoming');
-logger.database('SELECT', 'vw_boletos', { cnpj: 'XXX' });
+logger.database('SELECT', 'vw_botClientes', { cnpj: 'XXX' });
 logger.external('evolution', 'sendMessage', { status: 'success' });
 logger.error('Erro crítico', { context: 'startup' });
 ```
@@ -317,7 +317,7 @@ curl -X POST "http://localhost:3000/webhook/teste-mensagem" \
 ```
 
 **4. Erro na formatação de boletos**
-- Verificar se view `vw_boletos` existe
+- Verificar se view `vw_botBoletos` existe
 - Confirmar estrutura dos campos
 - Validar formato das datas e valores
 

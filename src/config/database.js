@@ -175,14 +175,14 @@ async function getClienteByCelular(celular) {
 }
 
 /**
- * Busca boletos em aberto do cliente na view: vw_botBoletos
+ * Busca boletos na view: vw_botBoletos
  * @param {string} cnpj - CNPJ do cliente
  * @returns {Promise} Lista de boletos
  */
 async function getBoletosByCNPJ(cnpj) {
     const query = `
         SELECT id, idNfse nfse, idConta conta, dataDoc, dataVencimento, numero, valor, 
-               codBarras, linhaDigitavel, status
+               codBarras, linhaDigitavel, url, status
         FROM vw_botBoletos 
         WHERE cnpj = ?
         -- AND dataVencimento >= CURDATE()
@@ -190,6 +190,47 @@ async function getBoletosByCNPJ(cnpj) {
     `;
     
     console.log('getBoletosByCNPJ: ', cnpj);
+    console.log('query: ', query);
+    
+    return await executeQuery(query, [cnpj]);
+}
+
+/**
+ * Busca NFE na view: vw_botNFE
+ * @param {string} cnpj - CNPJ do cliente
+ * @returns {Promise} Lista de boletos
+ */
+async function getNFEByCNPJ(cnpj) {
+    const query = `
+        SELECT id, idCliente, cnpj, numero, dataEmissao, dataNfe, codigo, valor, url, status 
+        FROM vw_botNFE 
+        WHERE cnpj = ?
+        -- AND dataEmissao >= CURDATE()
+        ORDER BY dataEmissao ASC
+    `;
+    
+    console.log('getNFEByCNPJ: ', cnpj);
+    console.log('query: ', query);
+    
+    return await executeQuery(query, [cnpj]);
+}
+
+
+/**
+ * Busca Certificado na view: vw_botCertificado
+ * @param {string} cnpj - CNPJ do cliente
+ * @returns {Promise} Lista de boletos
+ */
+async function getCertificadoByCNPJ(cnpj) {
+    const query = `
+        SELECT id,idCert,idCliente,cnpj,numero,numeroNota,dataEmissao,url, status 
+        FROM vw_botCertificado 
+        WHERE cnpj = ?
+        -- AND dataEmissao >= CURDATE()
+        ORDER BY dataEmissao ASC
+    `;
+    
+    console.log('getCertificadoByCNPJ: ', cnpj);
     console.log('query: ', query);
     
     return await executeQuery(query, [cnpj]);
@@ -290,6 +331,8 @@ module.exports = {
     getClienteByCNPJ,
     getClienteByCelular,
     getBoletosByCNPJ,
+    getNFEByCNPJ,
+    getCertificadoByCNPJ,
     registrarAtendimento,
     atualizarConversa,
     getAtendimentoByMessageId,
